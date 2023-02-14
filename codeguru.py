@@ -57,7 +57,7 @@ if __name__ == "__main__":
     with open("codeguru.in", "r") as f:
         input = f.read()
 
-    question = PROMPT_FUNCTION_DESCRIPTION + "\n\n" + input + "\"\"\""
+    question = prompt + "\n\n" + input + "\"\"\""
     answer = ask_question(question)
 
     with open("codeguru.out", "w") as f:
