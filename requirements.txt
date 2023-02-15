@@ -1,0 +1,6 @@
+openai
+botbuilder-core
+asyncio
+aiohttp
+cookiecutter==1.7.0
+cryptography==2.8

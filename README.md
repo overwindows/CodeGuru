@@ -1,8 +1,8 @@
-## Usage
+## Command Line Usage
 
 ### Code Review Generation
 ```
-python3 -m codeguru --task code_review
+python3 -m codeguru --task code_review 
 ```
 
 ### Commit Message Generation
