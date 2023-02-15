@@ -2,5 +2,5 @@ openai
 botbuilder-core
 asyncio
 aiohttp
-cookiecutter==1.7.0
+cookiecutter==2.1.1
 cryptography==2.8
