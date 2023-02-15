@@ -1,0 +1,60 @@
+{
+    "appName": "Teams-CodeGuruBot",
+    "projectId": "3a70cee7-13f6-47a2-92f9-c2dbe4a2e2a6",
+    "version": "2.1.0",
+    "components": [
+        {
+            "name": "teams-bot",
+            "hosting": "azure-web-app",
+            "provision": false,
+            "deploy": true,
+            "capabilities": [
+                "command-response"
+            ],
+            "build": true,
+            "folder": "bot"
+        },
+        {
+            "name": "bot-service",
+            "provision": true
+        },
+        {
+            "name": "azure-web-app",
+            "scenario": "Bot",
+            "connections": [
+                "identity",
+                "teams-bot"
+            ]
+        },
+        {
+            "name": "identity",
+            "provision": true
+        }
+    ],
+    "programmingLanguage": "typescript",
+    "solutionSettings": {
+        "name": "fx-solution-azure",
+        "version": "1.0.0",
+        "hostType": "Azure",
+        "azureResources": [],
+        "capabilities": [
+            "Bot"
+        ],
+        "activeResourcePlugins": [
+            "fx-resource-local-debug",
+            "fx-resource-appstudio",
+            "fx-resource-cicd",
+            "fx-resource-api-connector",
+            "fx-resource-bot",
+            "fx-resource-identity"
+        ]
+    },
+    "pluginSettings": {
+        "fx-resource-bot": {
+            "host-type": "app-service",
+            "capabilities": [
+                "command-response"
+            ]
+        }
+    }
+}
