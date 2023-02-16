@@ -1,0 +1,113 @@
+{
+  "$kind": "Microsoft.AdaptiveDialog",
+  "$designer": {
+    "id": "RTRRq5",
+    "name": "prompt_options",
+    "comment": ""
+  },
+  "autoEndDialog": true,
+  "defaultResultProperty": "dialog.result",
+  "triggers": [
+    {
+      "$kind": "Microsoft.OnBeginDialog",
+      "$designer": {
+        "name": "BeginDialog",
+        "description": "",
+        "id": "ZYM7Vz"
+      },
+      "actions": [
+        {
+          "$kind": "Microsoft.ChoiceInput",
+          "$designer": {
+            "id": "yO92rs"
+          },
+          "defaultLocale": "en-us",
+          "disabled": false,
+          "maxTurnCount": 3,
+          "alwaysPrompt": false,
+          "allowInterruptions": false,
+          "prompt": "${ChoiceInput_Prompt_yO92rs()}",
+          "unrecognizedPrompt": "",
+          "invalidPrompt": "",
+          "defaultValueResponse": "",
+          "choiceOptions": {
+            "includeNumbers": true,
+            "inlineOrMore": ", or ",
+            "inlineOr": " or "
+          },
+          "property": "dialog.choice",
+          "outputFormat": "index",
+          "style": "heroCard",
+          "choices": [
+            "Review my code",
+            "Generate a commit message for my code changes",
+            "Explain this function",
+            "Improve the performance of my code",
+            "Fix the bug in my code",
+            "Generate unit tests for my code",
+            "Translate my code into c#"
+          ]
+        },
+        {
+          "$kind": "Microsoft.SwitchCondition",
+          "$designer": {
+            "id": "M22Wbl"
+          },
+          "condition": "dialog.choice",
+          "cases": [
+            {
+              "value": "0",
+              "actions": [
+                {
+                  "$kind": "Microsoft.BeginDialog",
+                  "$designer": {
+                    "id": "cFgNpm"
+                  },
+                  "activityProcessed": true,
+                  "dialog": "do_code_review"
+                }
+              ]
+            },
+            {
+              "value": "1"
+            },
+            {
+              "value": "2"
+            },
+            {
+              "value": "3"
+            },
+            {
+              "value": "4"
+            },
+            {
+              "value": "5"
+            },
+            {
+              "value": "6"
+            }
+          ],
+          "default": [
+            {
+              "$kind": "Microsoft.SendActivity",
+              "$designer": {
+                "id": "zTIDGt"
+              },
+              "activity": "${SendActivity_zTIDGt()}"
+            }
+          ]
+        },
+        {
+          "$kind": "Microsoft.RepeatDialog",
+          "$designer": {
+            "id": "ifNGL4"
+          },
+          "activityProcessed": true
+        }
+      ]
+    }
+  ],
+  "generator": "prompt_options.lg",
+  "recognizer": "prompt_options.lu.qna",
+  "id": "prompt_options"
+}

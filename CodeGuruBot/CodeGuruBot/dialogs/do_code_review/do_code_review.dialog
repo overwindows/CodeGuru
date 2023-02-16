@@ -45,9 +45,10 @@
             "Authorization": "Bearer ${settings.OPENAI_API_KEY}"
           },
           "contentType": "application/json",
+          "responseType": "json",
           "body": {
             "model": "text-davinci-003",
-            "prompt": "Generate code review for below code in one line.",
+            "prompt": "Generate code review for below code in one line: \n\n${dialog.code}\"\"\"",
             "max_tokens": 512,
             "temperature": 0,
             "top_p": 1,
@@ -56,8 +57,7 @@
             "stop": [
               "\"\"\""
             ]
-          },
-          "responseType": "json"
+          }
         },
         {
           "$kind": "Microsoft.IfCondition",
@@ -111,7 +111,8 @@
           "invalidPrompt": "",
           "defaultValueResponse": "",
           "choiceOptions": {
-            "includeNumbers": true
+            "includeNumbers": true,
+            "inlineOrMore": ", or "
           },
           "property": "dialog.continue_review"
         },
