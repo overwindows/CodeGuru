@@ -22,11 +22,3 @@
 # LogAction_Text_0vOGrz_text()
 - ${dialog.prompt}
 - ${dialog.code}
-# SendActivity_9qhfNN()
-[Activity
-    Text = ${SendActivity_9qhfNN_text()}
-]
-
-# SendActivity_9qhfNN_text()
-- ${dialog.prompt}
-- ${dialog.code}
