@@ -2,7 +2,7 @@
   "$kind": "Microsoft.AdaptiveDialog",
   "$designer": {
     "id": "XXdQ0A",
-    "name": "do_code_review",
+    "name": "call_openai",
     "comment": "Does a code review"
   },
   "autoEndDialog": true,
@@ -17,21 +17,11 @@
       },
       "actions": [
         {
-          "$kind": "Microsoft.TextInput",
+          "$kind": "Microsoft.SendActivity",
           "$designer": {
-            "id": "NRu9S9",
-            "comment": ""
+            "id": "9qhfNN"
           },
-          "disabled": false,
-          "maxTurnCount": 3,
-          "alwaysPrompt": false,
-          "allowInterruptions": false,
-          "unrecognizedPrompt": "",
-          "invalidPrompt": "",
-          "defaultValueResponse": "",
-          "prompt": "${TextInput_Prompt_NRu9S9()}",
-          "outputFormat": "= this.value",
-          "property": "dialog.code"
+          "activity": "${SendActivity_9qhfNN()}"
         },
         {
           "$kind": "Microsoft.HttpRequest",
@@ -48,7 +38,7 @@
           "responseType": "json",
           "body": {
             "model": "text-davinci-003",
-            "prompt": "Generate code review for below code in one line: \n\n${dialog.code}\"\"\"",
+            "prompt": "${dialog.prompt} \n\n${dialog.code}\"\"\"",
             "max_tokens": 512,
             "temperature": 0,
             "top_p": 1,
@@ -93,42 +83,6 @@
                 "id": "TmbAVO"
               },
               "activity": "${SendActivity_TmbAVO()}"
-            }
-          ]
-        },
-        {
-          "$kind": "Microsoft.ConfirmInput",
-          "$designer": {
-            "id": "hxnXJm"
-          },
-          "defaultLocale": "en-us",
-          "disabled": false,
-          "maxTurnCount": 3,
-          "alwaysPrompt": false,
-          "allowInterruptions": false,
-          "prompt": "${ConfirmInput_Prompt_hxnXJm()}",
-          "unrecognizedPrompt": "",
-          "invalidPrompt": "",
-          "defaultValueResponse": "",
-          "choiceOptions": {
-            "includeNumbers": true,
-            "inlineOrMore": ", or "
-          },
-          "property": "dialog.continue_review"
-        },
-        {
-          "$kind": "Microsoft.IfCondition",
-          "$designer": {
-            "id": "fM5ucK"
-          },
-          "condition": "=bool(dialog.continue_review)",
-          "actions": [
-            {
-              "$kind": "Microsoft.RepeatDialog",
-              "$designer": {
-                "id": "n8I47Y"
-              },
-              "activityProcessed": true
             }
           ]
         }

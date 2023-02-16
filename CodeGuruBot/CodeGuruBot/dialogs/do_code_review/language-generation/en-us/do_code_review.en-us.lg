@@ -1,12 +1,5 @@
 [import](common.lg)
 
-# TextInput_Prompt_NRu9S9()
-[Activity
-    Text = ${TextInput_Prompt_NRu9S9_text()}
-]
-
-# TextInput_Prompt_NRu9S9_text()
-- What code would you like me to review?
 # SendActivity_TmbAVO()
 [Activity
     Text = ${SendActivity_TmbAVO_text()}
@@ -21,10 +14,19 @@
     Text = ${SendActivity_pSBPiy_text()}
 ]
 
-# ConfirmInput_Prompt_hxnXJm()
+# LogAction_Text_0vOGrz()
 [Activity
-    Text = ${ConfirmInput_Prompt_hxnXJm_text()}
+    Text = ${LogAction_Text_0vOGrz_text()}
 ]
 
-# ConfirmInput_Prompt_hxnXJm_text()
-- Do you have more code you would like me to review?
+# LogAction_Text_0vOGrz_text()
+- ${dialog.prompt}
+- ${dialog.code}
+# SendActivity_9qhfNN()
+[Activity
+    Text = ${SendActivity_9qhfNN_text()}
+]
+
+# SendActivity_9qhfNN_text()
+- ${dialog.prompt}
+- ${dialog.code}

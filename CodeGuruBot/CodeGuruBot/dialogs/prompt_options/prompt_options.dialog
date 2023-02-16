@@ -59,32 +59,92 @@
               "value": "0",
               "actions": [
                 {
-                  "$kind": "Microsoft.BeginDialog",
+                  "$kind": "Microsoft.SetProperty",
                   "$designer": {
-                    "id": "cFgNpm"
+                    "id": "nDpwe2"
                   },
-                  "activityProcessed": true,
-                  "dialog": "do_code_review"
+                  "property": "dialog.promptChosen",
+                  "value": "Generate code review for below code in one line."
                 }
               ]
             },
             {
-              "value": "1"
+              "value": "1",
+              "actions": [
+                {
+                  "$kind": "Microsoft.SetProperty",
+                  "$designer": {
+                    "id": "q2waxJ"
+                  },
+                  "property": "dialog.promptChosen",
+                  "value": "Generate commit message for the code changes in one line."
+                }
+              ]
             },
             {
-              "value": "2"
+              "value": "2",
+              "actions": [
+                {
+                  "$kind": "Microsoft.SetProperty",
+                  "$designer": {
+                    "id": "ZyiIw8"
+                  },
+                  "property": "dialog.promptChosen",
+                  "value": "Explain below function in one line."
+                }
+              ]
             },
             {
-              "value": "3"
+              "value": "3",
+              "actions": [
+                {
+                  "$kind": "Microsoft.SetProperty",
+                  "$designer": {
+                    "id": "YzB4oK"
+                  },
+                  "property": "dialog.promptChosen",
+                  "value": "Improve the performance of below code and make it run faster."
+                }
+              ]
             },
             {
-              "value": "4"
+              "value": "4",
+              "actions": [
+                {
+                  "$kind": "Microsoft.SetProperty",
+                  "$designer": {
+                    "id": "bWZVhq"
+                  },
+                  "property": "dialog.promptChosen",
+                  "value": "Fix the bug of below code."
+                }
+              ]
             },
             {
-              "value": "5"
+              "value": "5",
+              "actions": [
+                {
+                  "$kind": "Microsoft.SetProperty",
+                  "$designer": {
+                    "id": "VjO618"
+                  },
+                  "property": "dialog.promptChosen",
+                  "value": "Generate unit test cases for below code."
+                }
+              ]
             },
             {
-              "value": "6"
+              "value": "6",
+              "actions": [
+                {
+                  "$kind": "Microsoft.SetProperty",
+                  "$designer": {
+                    "id": "rDAsXm"
+                  },
+                  "property": "dialog.promptChosen",
+                  "value": "Translate below code into C#."
+                }
+              ]
             }
           ],
           "default": [
@@ -94,8 +154,42 @@
                 "id": "zTIDGt"
               },
               "activity": "${SendActivity_zTIDGt()}"
+            },
+            {
+              "$kind": "Microsoft.RepeatDialog",
+              "$designer": {
+                "id": "rCM9XE"
+              },
+              "activityProcessed": true
             }
           ]
+        },
+        {
+          "$kind": "Microsoft.TextInput",
+          "$designer": {
+            "id": "7bIhVy"
+          },
+          "disabled": false,
+          "maxTurnCount": 3,
+          "alwaysPrompt": false,
+          "allowInterruptions": false,
+          "unrecognizedPrompt": "",
+          "invalidPrompt": "",
+          "defaultValueResponse": "",
+          "prompt": "${TextInput_Prompt_7bIhVy()}",
+          "property": "dialog.code"
+        },
+        {
+          "$kind": "Microsoft.BeginDialog",
+          "$designer": {
+            "id": "wN7myr"
+          },
+          "activityProcessed": true,
+          "dialog": "do_code_review",
+          "options": {
+            "prompt": "${dialog.promptChosen}",
+            "code": "${dialog.code}"
+          }
         },
         {
           "$kind": "Microsoft.RepeatDialog",

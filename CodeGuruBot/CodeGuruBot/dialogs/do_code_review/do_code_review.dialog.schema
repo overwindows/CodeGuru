@@ -1,0 +1,22 @@
+{
+  "$schema": "https://schemas.botframework.com/schemas/component/v1.0/component.schema",
+  "$role": "implements(Microsoft.IDialog)",
+  "title": "do_code_review",
+  "type": "object",
+  "properties": {
+    "prompt": {
+      "description": "The prompt to OpenAI",
+      "$ref": "https://schemas.botframework.com/schemas/component/v1.0/component.schema#/definitions/stringExpression",
+      "title": "Prompt"
+    },
+    "code": {
+      "description": "The code to analyze",
+      "$ref": "https://schemas.botframework.com/schemas/component/v1.0/component.schema#/definitions/stringExpression",
+      "title": "Code"
+    }
+  },
+  "$result": {
+    "type": "object",
+    "properties": {}
+  }
+}

@@ -14,3 +14,10 @@
 
 # SendActivity_zTIDGt_text()
 - Sorry, your option is not yet supported.
+# TextInput_Prompt_7bIhVy()
+[Activity
+    Text = ${TextInput_Prompt_7bIhVy_text()}
+]
+
+# TextInput_Prompt_7bIhVy_text()
+- Sure, please provide me with your code.
