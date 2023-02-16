@@ -42,7 +42,7 @@
           "url": " https://api.openai.com/v1/completions",
           "method": "POST",
           "headers": {
-            "Authorization": "Bearer"
+            "Authorization": "Bearer ${settings.OPENAI_API_KEY}"
           },
           "contentType": "application/json",
           "body": {
