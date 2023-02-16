@@ -3,14 +3,6 @@ import openai
 import argparse
 from prompts import *
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
-argparser = argparse.ArgumentParser(
-    description="CodeGuru: A tool to generate code from natural language prompts")
-argparser.add_argument("--task", type=str, default="code_review",
-                       choices=["code_review", "commit_message", "variable_name", "function_signature", "function_description", "perf_optimization", "bug_fix", "test_generation", "code_translation"])
-args = argparser.parse_args()
-
 
 def get_prompt(task: str) -> str:
     if task == "code_review":
@@ -50,6 +42,14 @@ def ask_question(question: str) -> str:
 
 
 if __name__ == "__main__":
+    openai.api_key = os.getenv("OPENAI_API_KEY")
+
+    argparser = argparse.ArgumentParser(
+        description="CodeGuru: A tool to generate code from natural language prompts")
+    argparser.add_argument("--task", type=str, default="code_review",
+                        choices=["code_review", "commit_message", "variable_name", "function_signature", "function_description", "perf_optimization", "bug_fix", "test_generation", "code_translation"])
+    args = argparser.parse_args()
+
     # prompt = "\"\"\"\nUtil exposes the following:\nutil.openai() -> authenticates & returns the openai module, which has the following functions:\nopenai.Completion.create(\n    prompt=\"<my prompt>\", # The prompt to start completing from\n    max_tokens=123, # The max number of tokens to generate\n    temperature=1.0 # A measure of randomness\n    echo=True, # Whether to return the prompt in addition to the generated completion\n)\n\"\"\"\nimport util\n\"\"\"\nCreate an OpenAI completion starting from the prompt \"Once upon an AI\", no more than 5 tokens. Does not include the prompt.\n\"\"\"\n"
     prompt = get_prompt(args.task)
     # print(prompt)
