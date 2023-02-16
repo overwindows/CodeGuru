@@ -1,0 +1,140 @@
+{
+  "$kind": "Microsoft.AdaptiveDialog",
+  "$designer": {
+    "id": "XXdQ0A",
+    "name": "do_code_review",
+    "comment": "Does a code review"
+  },
+  "autoEndDialog": true,
+  "defaultResultProperty": "dialog.result",
+  "triggers": [
+    {
+      "$kind": "Microsoft.OnBeginDialog",
+      "$designer": {
+        "name": "BeginDialog",
+        "description": "",
+        "id": "ak3CwT"
+      },
+      "actions": [
+        {
+          "$kind": "Microsoft.TextInput",
+          "$designer": {
+            "id": "NRu9S9",
+            "comment": ""
+          },
+          "disabled": false,
+          "maxTurnCount": 3,
+          "alwaysPrompt": false,
+          "allowInterruptions": false,
+          "unrecognizedPrompt": "",
+          "invalidPrompt": "",
+          "defaultValueResponse": "",
+          "prompt": "${TextInput_Prompt_NRu9S9()}",
+          "outputFormat": "= this.value",
+          "property": "dialog.code"
+        },
+        {
+          "$kind": "Microsoft.HttpRequest",
+          "$designer": {
+            "id": "GDur5y"
+          },
+          "resultProperty": "dialog.api_response",
+          "url": " https://api.openai.com/v1/completions",
+          "method": "POST",
+          "headers": {
+            "Authorization": "Bearer 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"
+          },
+          "contentType": "application/json",
+          "body": {
+            "model": "text-davinci-003",
+            "prompt": "Generate code review for below code in one line.",
+            "max_tokens": 512,
+            "temperature": 0,
+            "top_p": 1,
+            "frequency_penalty": 0,
+            "presence_penalty": 0,
+            "stop": [
+              "\"\"\""
+            ]
+          },
+          "responseType": "json"
+        },
+        {
+          "$kind": "Microsoft.IfCondition",
+          "$designer": {
+            "id": "Cwvjap"
+          },
+          "condition": "=dialog.api_response.statusCode == 200",
+          "actions": [
+            {
+              "$kind": "Microsoft.SetProperties",
+              "$designer": {
+                "id": "crMgOX"
+              },
+              "assignments": [
+                {
+                  "property": "dialog.result",
+                  "value": "=dialog.api_response.content.choices[0].text"
+                }
+              ]
+            },
+            {
+              "$kind": "Microsoft.SendActivity",
+              "$designer": {
+                "id": "pSBPiy"
+              },
+              "activity": "${SendActivity_pSBPiy()}"
+            }
+          ],
+          "elseActions": [
+            {
+              "$kind": "Microsoft.SendActivity",
+              "$designer": {
+                "id": "TmbAVO"
+              },
+              "activity": "${SendActivity_TmbAVO()}"
+            }
+          ]
+        },
+        {
+          "$kind": "Microsoft.ConfirmInput",
+          "$designer": {
+            "id": "hxnXJm"
+          },
+          "defaultLocale": "en-us",
+          "disabled": false,
+          "maxTurnCount": 3,
+          "alwaysPrompt": false,
+          "allowInterruptions": false,
+          "prompt": "${ConfirmInput_Prompt_hxnXJm()}",
+          "unrecognizedPrompt": "",
+          "invalidPrompt": "",
+          "defaultValueResponse": "",
+          "choiceOptions": {
+            "includeNumbers": true
+          },
+          "property": "dialog.continue_review"
+        },
+        {
+          "$kind": "Microsoft.IfCondition",
+          "$designer": {
+            "id": "fM5ucK"
+          },
+          "condition": "=bool(dialog.continue_review)",
+          "actions": [
+            {
+              "$kind": "Microsoft.RepeatDialog",
+              "$designer": {
+                "id": "n8I47Y"
+              },
+              "activityProcessed": true
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "generator": "do_code_review.lg",
+  "recognizer": "do_code_review.lu.qna",
+  "id": "do_code_review"
+}

@@ -1,0 +1,30 @@
+[import](common.lg)
+
+# TextInput_Prompt_NRu9S9()
+[Activity
+    Text = ${TextInput_Prompt_NRu9S9_text()}
+]
+
+# TextInput_Prompt_NRu9S9_text()
+- What code would you like me to review?
+# SendActivity_TmbAVO()
+[Activity
+    Text = ${SendActivity_TmbAVO_text()}
+]
+
+# SendActivity_TmbAVO_text()
+- Something went wrong: ${dialog.api_response.reasonPhrase}
+# SendActivity_pSBPiy_text()
+- ${dialog.result}
+# SendActivity_pSBPiy()
+[Activity
+    Text = ${SendActivity_pSBPiy_text()}
+]
+
+# ConfirmInput_Prompt_hxnXJm()
+[Activity
+    Text = ${ConfirmInput_Prompt_hxnXJm_text()}
+]
+
+# ConfirmInput_Prompt_hxnXJm_text()
+- Do you have more code you would like me to review?

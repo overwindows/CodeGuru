@@ -43,7 +43,8 @@
                 }
               ]
             }
-          ]
+          ],
+          "value": "dialog.foreach.value"
         }
       ]
     },
@@ -63,12 +64,36 @@
           "activity": "${SendActivity_DidNotUnderstand()}"
         }
       ]
+    },
+    {
+      "$kind": "Microsoft.OnIntent",
+      "$designer": {
+        "id": "YqcZ72",
+        "name": "code_review"
+      },
+      "intent": "code_review",
+      "actions": [
+        {
+          "$kind": "Microsoft.BeginDialog",
+          "$designer": {
+            "id": "ilHVEj",
+            "comment": "Do a code review"
+          },
+          "activityProcessed": true,
+          "dialog": "do_code_review"
+        }
+      ]
     }
   ],
   "generator": "CodeGuruBot.lg",
   "id": "CodeGuruBot",
   "recognizer": {
     "$kind": "Microsoft.RegexRecognizer",
-    "intents": []
+    "intents": [
+      {
+        "intent": "code_review",
+        "pattern": "code_review"
+      }
+    ]
   }
 }
