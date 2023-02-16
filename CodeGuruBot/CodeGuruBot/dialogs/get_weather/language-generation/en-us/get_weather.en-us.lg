@@ -1,0 +1,9 @@
+[import](common.lg)
+
+# SendActivity_1odLD2()
+[Activity
+    Text = ${SendActivity_1odLD2_text()}
+]
+
+# SendActivity_1odLD2_text()
+- Let's check the weather

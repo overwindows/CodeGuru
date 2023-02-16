@@ -6,8 +6,7 @@
 ]
 
 # SendActivity_Greeting_text()
-- Welcome to your bot.
-
+- Welcome to CodeGuru!
 # SendActivity_DidNotUnderstand()
 [Activity
     Text = ${SendActivity_DidNotUnderstand_text()}

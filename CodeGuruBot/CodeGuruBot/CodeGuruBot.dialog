@@ -67,5 +67,8 @@
   ],
   "generator": "CodeGuruBot.lg",
   "id": "CodeGuruBot",
-  "recognizer": "CodeGuruBot.lu.qna"
+  "recognizer": {
+    "$kind": "Microsoft.RegexRecognizer",
+    "intents": []
+  }
 }
