@@ -1,3 +1,4 @@
+from codeguru import beautify_code, review_code, transpile_code, commit_msg
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory
 app = Flask(__name__)
@@ -16,13 +17,25 @@ def favicon():
 @app.route('/hello', methods=['POST'])
 def hello():
    content = request.form.get('content')
-   tasks = request.form.get('tasks')
+   task = request.form.get('tasks')
+   # print(task)
    if content and content != '':
-      if tasks == 'code_beautify':         
-         response = beautify(content)
+      # print('Request for hello page received with name: ' + content)
+      if task == 'code_beautify':         
+         response = beautify_code(content)
          return render_template('beautify.html', response = response)
+      elif task == 'code_review':
+         print('Request for code review page received')
+         response = review_code(content)
+         return render_template('review.html', response = response)
+      elif task == 'code_trans':
+         response = transpile_code(content)
+         return render_template('transpile.html', response = response)
+      elif task == 'commit_msg':
+         response = commit_msg(content)
+         return render_template('commit.html', response = response) 
       else:
-         return redirect(url_for('index')
+         return redirect(url_for('index'))
    else:
        print('Request for hello page received with no name or blank name -- redirecting')
        return redirect(url_for('index'))

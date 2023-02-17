@@ -5,18 +5,29 @@ from prompts import *
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-def beautify(content: str) -> str:
-    response = openai.Completion.create(
-        model="text-davinci-003",
-        prompt=content,
-        temperature=0,
-        max_tokens=512,
-        top_p=1.0,
-        frequency_penalty=0.0,
-        presence_penalty=0.0,
-        stop=["\"\"\""]
-    )
-    return response.choices[0].text
+def beautify_code(input: str) -> str:
+    prompt = get_prompt('beautify')
+    question = prompt + "\n\n" + input + "\"\"\""
+    answer = ask_question(question)
+    return answer
+
+def review_code(input: str) -> str:
+    prompt = get_prompt('code_review')
+    question = prompt + "\n\n" + input + "\"\"\""
+    answer = ask_question(question)
+    return answer
+
+def transpile_code(input: str) -> str:
+    prompt = get_prompt('code_translation')
+    question = prompt + "\n\n" + input + "\"\"\""
+    answer = ask_question(question)
+    return answer
+
+def commit_msg(input: str) -> str:
+    prompt = get_prompt('commit_message')
+    question = prompt + "\n\n" + input + "\"\"\""
+    answer = ask_question(question)
+    return answer
 
 def get_prompt(task: str) -> str:
     if task == "code_review":
@@ -37,6 +48,8 @@ def get_prompt(task: str) -> str:
         return PROMPT_TEST_GENERATION
     elif task == "code_translation":
         return PROMPT_CODE_TRANSLATION
+    elif task == "beautify":
+        return PROMPT_BEAUTIFY
     else:
         raise ValueError("Invalid task: " + task)
 
