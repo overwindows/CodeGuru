@@ -1,6 +1,1 @@
 openai
-botbuilder-core
-asyncio
-aiohttp
-cookiecutter
-cryptography

@@ -7,3 +7,5 @@ PROMPT_PERF_OPTIMIZATION = "Improve the performance of below code and make it ru
 PROMPT_BUG_FIX = "Fix the bug of below code."
 PROMPT_TEST_GENERATION = "Generate unit test cases for below code"
 PROMPT_CODE_TRANSLATION = "Translate below code into C#."
+PROMPT_BEAUTIFY = "Make below code more beautiful and more readability."
+PROMPT_REFACTOR = "Refactor below code."
