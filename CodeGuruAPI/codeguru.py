@@ -3,6 +3,20 @@ import openai
 import argparse
 from prompts import *
 
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+def beautify(content: str) -> str:
+    response = openai.Completion.create(
+        model="text-davinci-003",
+        prompt=content,
+        temperature=0,
+        max_tokens=512,
+        top_p=1.0,
+        frequency_penalty=0.0,
+        presence_penalty=0.0,
+        stop=["\"\"\""]
+    )
+    return response.choices[0].text
 
 def get_prompt(task: str) -> str:
     if task == "code_review":
@@ -42,8 +56,6 @@ def ask_question(question: str) -> str:
 
 
 if __name__ == "__main__":
-    openai.api_key = os.getenv("OPENAI_API_KEY")
-
     argparser = argparse.ArgumentParser(
         description="CodeGuru: A tool to generate code from natural language prompts")
     argparser.add_argument("--task", type=str, default="code_review",

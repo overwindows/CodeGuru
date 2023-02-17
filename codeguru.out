@@ -1,11 +1,1 @@
-
-
-public double iou(Tuple<int, int> A, Tuple<int, int> B)
-{
-    int max0 = Math.Max(toSec(A.Item1), toSec(B.Item1));
-    int min0 = Math.Min(toSec(A.Item1), toSec(B.Item1));
-    int max1 = Math.Max(toSec(A.Item2), toSec(B.Item2));
-    int min1 = Math.Min(toSec(A.Item2), toSec(B.Item2));
-    
-    return Math.Max(min1 - max0, 0) / (max1 - min0);
-}
+The code could be improved by using a single max and min function call instead of four separate calls.
