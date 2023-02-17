@@ -341,3 +341,6 @@ $RECYCLE.BIN/
 _NCrunch*
 
 .vs/
+CodeGuruAPI/diff.txt
+.vscode/settings.json
+.gitignore

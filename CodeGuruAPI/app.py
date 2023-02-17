@@ -1,3 +1,4 @@
+import os
 from codeguru import beautify_code, review_code, transpile_code, commit_msg
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory
@@ -23,17 +24,17 @@ def hello():
       # print('Request for hello page received with name: ' + content)
       if task == 'code_beautify':         
          response = beautify_code(content)
-         return render_template('beautify.html', response = response)
+         return render_template('beautify.html', response = response, service = 'Code Beautify')
       elif task == 'code_review':
          print('Request for code review page received')
          response = review_code(content)
-         return render_template('review.html', response = response)
+         return render_template('review.html', response = response, service = 'Code Review Generation')
       elif task == 'code_trans':
          response = transpile_code(content)
-         return render_template('transpile.html', response = response)
+         return render_template('transpile.html', response = response, service = 'Code Translation')
       elif task == 'commit_msg':
          response = commit_msg(content)
-         return render_template('commit.html', response = response) 
+         return render_template('commit.html', response = response, service = 'Commit Message Generation') 
       else:
          return redirect(url_for('index'))
    else:
