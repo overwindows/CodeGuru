@@ -1,0 +1,9 @@
+PROMPT_CODE_REVIEW = "Generate code review for below code in one line."
+PROMPT_COMMIT_MESSAGE = "Generate commit message for the code changes in one line."
+PROMPT_VARIABLE_NAME = None
+PROMPT_FUNCTION_SIGNATURE = None
+PROMPT_FUNCTION_DESCRIPTION = "Explain below function in one line."
+PROMPT_PERF_OPTIMIZATION = "Improve the performance of below code and make it run faster."
+PROMPT_BUG_FIX = "Fix the bug of below code."
+PROMPT_TEST_GENERATION = "Generate unit test cases for below code"
+PROMPT_CODE_TRANSLATION = "Translate below code into C#."
