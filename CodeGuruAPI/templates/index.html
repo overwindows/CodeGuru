@@ -1,35 +1,82 @@
 <!doctype html>
+
 <head>
-    <title>Hello Azure - Python Quickstart</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  <title>Hello Azure - Python Quickstart</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  <style>
+    .loader {
+      border: 8px solid #f3f3f3;
+      border-radius: 50%;
+      border-top: 8px solid #3498db;
+      width: 32px;
+      height: 32px;
+      -webkit-animation: spin 2s linear infinite;
+      /* Safari */
+      animation: spin 2s linear infinite;
+      display: inline-block;
+    }
+
+    /* Safari */
+    @-webkit-keyframes spin {
+      0% {
+        -webkit-transform: rotate(0deg);
+      }
+
+      100% {
+        -webkit-transform: rotate(360deg);
+      }
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
 </head>
 <html>
-   <body>
-     <main>
-        <div class="px-4 py-3 my-2 text-center">
-            <img class="d-block mx-auto mb-4" src="{{ url_for('static', filename='images/codeguru-icon.svg') }}" alt="Azure Logo" width="192" height="192"/>
-            <!-- <img  src="/docs/5.1/assets/brand/bootstrap-logo.svg" alt="" width="72" height="57"> -->
-            <h1 class="display-6 fw-bold text-primary">Welcome to CodeGuru</h1>            
-          </div>
-        <form method="post" action="{{url_for('hello')}}">
-            <div class="col-md-6 mx-auto text-center">
-                <label for="name" class="form-label fw-bold fs-5">How Can I Assist?</label>
-                <select name="tasks" id="tasks">
-                  <option value="code_review">Code Review</option>
-                  <option value="commit_msg">Commit Message</option>
-                  <option value="code_beautify">Code Beautify</option>
-                  <option value="code_trans">Code Translation</option>
-                </select>
-                <!-- <p class="lead mb-2">Could you please tell me your name?</p> -->
-                <div class="d-grid gap-2 d-sm-flex justify-content-sm-center align-items-center my-1">
-                    <textarea type="text" class="form-control" id="content" name="content" style="max-width: 512px; height: 256px;"></textarea>
-                  </div>            
-                <div class="d-grid gap-2 d-sm-flex justify-content-sm-center my-2">
-                  <button type="submit" class="btn btn-primary btn-lg px-4 gap-3">Let's Go!</button>
-                </div>            
-            </div>
-        </form>
-     </main>      
-   </body>
+
+<body>
+  <main>
+    <div class="px-4 py-3 my-2 text-center">
+      <img class="d-block mx-auto mb-4" src="{{ url_for('static', filename='images/codeguru-icon.svg') }}"
+        alt="Azure Logo" width="168" height="168" />
+      <!-- <img  src="/docs/5.1/assets/brand/bootstrap-logo.svg" alt="" width="72" height="57"> -->
+      <h1 class="display-6 fw-bold text-primary">Welcome to CodeGuru</h1>
+    </div>
+    <script>
+      function myFunction() {
+        document.getElementById("content").readOnly = "true";
+        // document.getElementById("tasks").disabled = "true";
+        document.getElementById('out').innerHTML = "<p style='font-family:verdana;color:red'>Your request is being processed. Please wait a moment. :-)</p><div class='loader'></div>";
+        document.getElementById('out').style.display = "block";
+      }
+    </script>
+    <form method="post" action="{{url_for('hello')}}" onsubmit="myFunction()">
+      <div class="col-md-6 mx-auto text-center">
+        <div id="out" style="display:none;"></div>
+        <label for="name" class="form-label fw-bold fs-5">How Can I Assist?</label>
+        <select name="tasks" id="tasks">
+          <option value="code_review">Code Review</option>
+          <option value="commit_msg">Commit Message</option>
+          <option value="code_beautify">Code Beautify</option>
+          <option value="code_trans">Code Translation</option>
+        </select>
+        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center align-items-center my-1">
+          <textarea type="text" class="form-control" id="content" name="content"
+            style="max-width: 512px; height: 256px;"></textarea>
+        </div>
+        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center my-2">
+          <button type="submit" class="btn btn-primary btn-lg px-4 gap-3">Try it!</button>
+        </div>
+      </div>
+    </form>
+  </main>
+</body>
+
 </html>
