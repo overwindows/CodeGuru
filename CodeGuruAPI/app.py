@@ -1,5 +1,5 @@
 import os
-from codeguru import beautify_code, review_code, transpile_code, commit_msg
+from codeguru import beautify_code, review_code, transpile_code, commit_msg, summarize_code, generate_testcases, fix_bug, optimize_perf
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory
 app = Flask(__name__)
@@ -35,6 +35,18 @@ def hello():
       elif task == 'commit_msg':
          response = commit_msg(content)
          return render_template('commit.html', response = response, service = 'Commit Message Generation') 
+      elif task == 'code_summarize':
+         response = summarize_code(content)
+         return render_template('results.html', response = response, service = 'Code Summarization')
+      elif task == 'test_generation':
+         response = generate_testcases(content)
+         return render_template('results.html', response = response, service = 'Test Case Generation')
+      elif task == 'bug_fix':
+         response = fix_bug(content)
+         return render_template('results.html', response = response, service = 'Bug Fix Generation')
+      elif task == 'perf_optimization':
+         response = optimize_perf(content)
+         return render_template('results.html', response = response, service = 'Performance Optimization')
       else:
          return redirect(url_for('index'))
    else:

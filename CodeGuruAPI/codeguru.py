@@ -5,6 +5,30 @@ from prompts import *
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
+def generate_testcases(input: str) -> str:
+    prompt = get_prompt('test_generation')
+    question = prompt + "\n\n" + input + "\"\"\""
+    answer = ask_question(question)
+    return answer
+
+def fix_bug(input: str) -> str:
+    prompt = get_prompt('bug_fix')
+    question = prompt + "\n\n" + input + "\"\"\""
+    answer = ask_question(question)
+    return answer
+
+def optimize_perf(input: str) -> str:
+    prompt = get_prompt('perf_optimization')
+    question = prompt + "\n\n" + input + "\"\"\""
+    answer = ask_question(question)
+    return answer
+
+def summarize_code(input: str) -> str:
+    prompt = get_prompt('function_description')
+    question = prompt + "\n\n" + input + "\"\"\""
+    answer = ask_question(question)
+    return answer
+
 def beautify_code(input: str) -> str:
     prompt = get_prompt('beautify')
     question = prompt + "\n\n" + input + "\"\"\""
