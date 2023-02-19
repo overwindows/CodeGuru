@@ -35,16 +35,16 @@ def hello():
       elif task == 'commit_msg':
          response = commit_msg(content)
          return render_template('commit.html', response = response, service = 'Commit Message Generation') 
-      elif task == 'code_summarize':
+      elif task == 'func_desc':
          response = summarize_code(content)
          return render_template('results.html', response = response, service = 'Code Summarization')
-      elif task == 'test_generation':
+      elif task == 'gen_tests':
          response = generate_testcases(content)
          return render_template('results.html', response = response, service = 'Test Case Generation')
       elif task == 'bug_fix':
          response = fix_bug(content)
          return render_template('results.html', response = response, service = 'Bug Fix Generation')
-      elif task == 'perf_optimization':
+      elif task == 'perf_opt':
          response = optimize_perf(content)
          return render_template('results.html', response = response, service = 'Performance Optimization')
       else:
