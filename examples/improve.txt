@@ -1,0 +1,8 @@
+bool contains(int *A, int n) {
+    bool found = false;
+    for (int i=0; i<n; i++)
+        if (A[i] == n)
+            found = true;
+    return found;
+}
+
