@@ -104,7 +104,7 @@
                     "id": "YzB4oK"
                   },
                   "property": "dialog.promptChosen",
-                  "value": "Improve the performance of below code and make it run faster."
+                  "value": "Improve the performance of below code and make it run faster. When returning code, format it in markdown code block."
                 }
               ]
             },
@@ -117,7 +117,7 @@
                     "id": "bWZVhq"
                   },
                   "property": "dialog.promptChosen",
-                  "value": "Fix the bug of below code."
+                  "value": "Fix the bug of below code and explain what you did to fix it. When returning code, format it in markdown code block."
                 }
               ]
             },
@@ -143,7 +143,7 @@
                     "id": "rDAsXm"
                   },
                   "property": "dialog.promptChosen",
-                  "value": "Translate below code into C#."
+                  "value": "Translate below code into C# and format the result as a markdown code block."
                 }
               ]
             }
