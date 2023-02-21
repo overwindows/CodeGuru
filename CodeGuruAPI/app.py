@@ -2,8 +2,8 @@ import os
 from codeguru import beautify_code, review_code, transpile_code, commit_msg, summarize_code, generate_testcases, fix_bug, optimize_perf
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory
-app = Flask(__name__)
 
+app = Flask(__name__)
 
 @app.route('/')
 def index():
