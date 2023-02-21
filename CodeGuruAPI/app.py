@@ -47,6 +47,11 @@ def hello():
       elif task == 'perf_opt':
          response = optimize_perf(content)
          return render_template('results.html', response = response, service = 'Performance Optimization')
+      elif task == 'code_search':
+         import urllib.request
+         f = urllib.request.urlopen("http://stackoverflow.com")
+         response = f.read()
+         return render_template('results.html', response = response, service = 'Code Search')
       else:
          return redirect(url_for('index'))
    else:
