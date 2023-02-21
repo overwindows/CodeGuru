@@ -1,0 +1,73 @@
+{
+  "$kind": "Microsoft.AdaptiveDialog",
+  "$designer": {
+    "id": "sNMTvm",
+    "name": "call_codesearch",
+    "comment": ""
+  },
+  "autoEndDialog": true,
+  "defaultResultProperty": "dialog.result",
+  "triggers": [
+    {
+      "$kind": "Microsoft.OnBeginDialog",
+      "$designer": {
+        "name": "BeginDialog",
+        "description": "",
+        "id": "0c7V0w"
+      },
+      "actions": [
+        {
+          "$kind": "Microsoft.HttpRequest",
+          "$designer": {
+            "id": "xza0kt"
+          },
+          "resultProperty": "dialog.api_response",
+          "method": "GET",
+          "url": "https://9e93-2404-f801-9000-1a-7a50-faba-cb27-dee9.ap.ngrok.io/search?query=${dialog.query}",
+          "contentType": "application/json",
+          "responseType": "json"
+        },
+        {
+          "$kind": "Microsoft.IfCondition",
+          "$designer": {
+            "id": "cbMgtG"
+          },
+          "condition": "=dialog.api_response.statusCode == 200",
+          "actions": [
+            {
+              "$kind": "Microsoft.SetProperties",
+              "$designer": {
+                "id": "g2GeW5"
+              },
+              "assignments": [
+                {
+                  "property": "dialog.result",
+                  "value": "=dialog.api_response.content[0].func"
+                }
+              ]
+            },
+            {
+              "$kind": "Microsoft.SendActivity",
+              "$designer": {
+                "id": "Go2V8t"
+              },
+              "activity": "${SendActivity_Go2V8t()}"
+            }
+          ],
+          "elseActions": [
+            {
+              "$kind": "Microsoft.SendActivity",
+              "$designer": {
+                "id": "4mFXEu"
+              },
+              "activity": "${SendActivity_4mFXEu()}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "generator": "call_codesearch.lg",
+  "recognizer": "call_codesearch.lu.qna",
+  "id": "call_codesearch"
+}

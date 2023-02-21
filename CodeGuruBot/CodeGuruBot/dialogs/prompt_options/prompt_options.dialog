@@ -46,7 +46,8 @@
             "Improve the performance of my code",
             "Fix the bug in my code",
             "Generate unit tests for my code",
-            "Translate my code into c#"
+            "Translate my code into c#",
+            "Help me with searching for code"
           ]
         },
         {
@@ -66,6 +67,33 @@
                   },
                   "property": "dialog.promptChosen",
                   "value": "Generate code review for below code in one line."
+                },
+                {
+                  "$kind": "Microsoft.TextInput",
+                  "$designer": {
+                    "id": "3ry08G"
+                  },
+                  "disabled": false,
+                  "maxTurnCount": 3,
+                  "alwaysPrompt": false,
+                  "allowInterruptions": false,
+                  "unrecognizedPrompt": "",
+                  "invalidPrompt": "",
+                  "defaultValueResponse": "",
+                  "prompt": "${TextInput_Prompt_3ry08G()}",
+                  "property": "dialog.code"
+                },
+                {
+                  "$kind": "Microsoft.BeginDialog",
+                  "$designer": {
+                    "id": "y2krxl"
+                  },
+                  "activityProcessed": true,
+                  "dialog": "do_code_review",
+                  "options": {
+                    "prompt": "${dialog.promptChosen}",
+                    "code": "${dialog.code}"
+                  }
                 }
               ]
             },
@@ -79,6 +107,33 @@
                   },
                   "property": "dialog.promptChosen",
                   "value": "Generate commit message for the code changes in one line."
+                },
+                {
+                  "$kind": "Microsoft.TextInput",
+                  "$designer": {
+                    "id": "HSBS0Z"
+                  },
+                  "disabled": false,
+                  "maxTurnCount": 3,
+                  "alwaysPrompt": false,
+                  "allowInterruptions": false,
+                  "unrecognizedPrompt": "",
+                  "invalidPrompt": "",
+                  "defaultValueResponse": "",
+                  "prompt": "${TextInput_Prompt_HSBS0Z()}",
+                  "property": "dialog.code"
+                },
+                {
+                  "$kind": "Microsoft.BeginDialog",
+                  "$designer": {
+                    "id": "DeRQuT"
+                  },
+                  "activityProcessed": true,
+                  "dialog": "do_code_review",
+                  "options": {
+                    "prompt": "${dialog.promptChosen}",
+                    "code": "${dialog.code}"
+                  }
                 }
               ]
             },
@@ -92,6 +147,33 @@
                   },
                   "property": "dialog.promptChosen",
                   "value": "Explain below function in one line."
+                },
+                {
+                  "$kind": "Microsoft.TextInput",
+                  "$designer": {
+                    "id": "4Ti0ko"
+                  },
+                  "disabled": false,
+                  "maxTurnCount": 3,
+                  "alwaysPrompt": false,
+                  "allowInterruptions": false,
+                  "unrecognizedPrompt": "",
+                  "invalidPrompt": "",
+                  "defaultValueResponse": "",
+                  "prompt": "${TextInput_Prompt_4Ti0ko()}",
+                  "property": "dialog.code"
+                },
+                {
+                  "$kind": "Microsoft.BeginDialog",
+                  "$designer": {
+                    "id": "6rzzA6"
+                  },
+                  "activityProcessed": true,
+                  "dialog": "do_code_review",
+                  "options": {
+                    "prompt": "${dialog.promptChosen}",
+                    "code": "${dialog.code}"
+                  }
                 }
               ]
             },
@@ -105,6 +187,33 @@
                   },
                   "property": "dialog.promptChosen",
                   "value": "Improve the performance of below code and make it run faster. When returning code, format it in markdown code block."
+                },
+                {
+                  "$kind": "Microsoft.TextInput",
+                  "$designer": {
+                    "id": "qeMIRO"
+                  },
+                  "disabled": false,
+                  "maxTurnCount": 3,
+                  "alwaysPrompt": false,
+                  "allowInterruptions": false,
+                  "unrecognizedPrompt": "",
+                  "invalidPrompt": "",
+                  "defaultValueResponse": "",
+                  "prompt": "${TextInput_Prompt_qeMIRO()}",
+                  "property": "dialog.code"
+                },
+                {
+                  "$kind": "Microsoft.BeginDialog",
+                  "$designer": {
+                    "id": "8gUi44"
+                  },
+                  "activityProcessed": true,
+                  "dialog": "do_code_review",
+                  "options": {
+                    "prompt": "${dialog.promptChosen}",
+                    "code": "${dialog.code}"
+                  }
                 }
               ]
             },
@@ -118,6 +227,33 @@
                   },
                   "property": "dialog.promptChosen",
                   "value": "Fix the bug of below code and explain what you did to fix it. When returning code, format it in markdown code block."
+                },
+                {
+                  "$kind": "Microsoft.TextInput",
+                  "$designer": {
+                    "id": "9Yvs73"
+                  },
+                  "disabled": false,
+                  "maxTurnCount": 3,
+                  "alwaysPrompt": false,
+                  "allowInterruptions": false,
+                  "unrecognizedPrompt": "",
+                  "invalidPrompt": "",
+                  "defaultValueResponse": "",
+                  "prompt": "${TextInput_Prompt_9Yvs73()}",
+                  "property": "dialog.code"
+                },
+                {
+                  "$kind": "Microsoft.BeginDialog",
+                  "$designer": {
+                    "id": "E4lHUs"
+                  },
+                  "activityProcessed": true,
+                  "dialog": "do_code_review",
+                  "options": {
+                    "prompt": "${dialog.promptChosen}",
+                    "code": "${dialog.code}"
+                  }
                 }
               ]
             },
@@ -131,6 +267,33 @@
                   },
                   "property": "dialog.promptChosen",
                   "value": "Generate unit test cases for below code."
+                },
+                {
+                  "$kind": "Microsoft.TextInput",
+                  "$designer": {
+                    "id": "eChXTl"
+                  },
+                  "disabled": false,
+                  "maxTurnCount": 3,
+                  "alwaysPrompt": false,
+                  "allowInterruptions": false,
+                  "unrecognizedPrompt": "",
+                  "invalidPrompt": "",
+                  "defaultValueResponse": "",
+                  "prompt": "${TextInput_Prompt_eChXTl()}",
+                  "property": "dialog.code"
+                },
+                {
+                  "$kind": "Microsoft.BeginDialog",
+                  "$designer": {
+                    "id": "VWrFYY"
+                  },
+                  "activityProcessed": true,
+                  "dialog": "do_code_review",
+                  "options": {
+                    "prompt": "${dialog.promptChosen}",
+                    "code": "${dialog.code}"
+                  }
                 }
               ]
             },
@@ -144,6 +307,72 @@
                   },
                   "property": "dialog.promptChosen",
                   "value": "Translate below code into C# and format the result as a markdown code block."
+                },
+                {
+                  "$kind": "Microsoft.TextInput",
+                  "$designer": {
+                    "id": "zd1RnQ"
+                  },
+                  "disabled": false,
+                  "maxTurnCount": 3,
+                  "alwaysPrompt": false,
+                  "allowInterruptions": false,
+                  "unrecognizedPrompt": "",
+                  "invalidPrompt": "",
+                  "defaultValueResponse": "",
+                  "prompt": "${TextInput_Prompt_zd1RnQ()}",
+                  "property": "dialog.code"
+                },
+                {
+                  "$kind": "Microsoft.BeginDialog",
+                  "$designer": {
+                    "id": "SaUYEV"
+                  },
+                  "activityProcessed": true,
+                  "dialog": "do_code_review",
+                  "options": {
+                    "prompt": "${dialog.promptChosen}",
+                    "code": "${dialog.code}"
+                  }
+                }
+              ]
+            },
+            {
+              "value": "7",
+              "actions": [
+                {
+                  "$kind": "Microsoft.SetProperty",
+                  "$designer": {
+                    "id": "v8p5hF"
+                  },
+                  "property": "dialog.promptChosen",
+                  "value": "Help me with searching for code"
+                },
+                {
+                  "$kind": "Microsoft.TextInput",
+                  "$designer": {
+                    "id": "kmp83c"
+                  },
+                  "disabled": false,
+                  "maxTurnCount": 3,
+                  "alwaysPrompt": false,
+                  "allowInterruptions": false,
+                  "unrecognizedPrompt": "",
+                  "invalidPrompt": "",
+                  "defaultValueResponse": "",
+                  "prompt": "${TextInput_Prompt_kmp83c()}",
+                  "property": "dialog.query"
+                },
+                {
+                  "$kind": "Microsoft.BeginDialog",
+                  "$designer": {
+                    "id": "VLOahf"
+                  },
+                  "activityProcessed": true,
+                  "dialog": "call_codesearch",
+                  "options": {
+                    "query": "${dialog.query}"
+                  }
                 }
               ]
             }
@@ -164,33 +393,6 @@
               "activityProcessed": true
             }
           ]
-        },
-        {
-          "$kind": "Microsoft.TextInput",
-          "$designer": {
-            "id": "7bIhVy"
-          },
-          "disabled": false,
-          "maxTurnCount": 3,
-          "alwaysPrompt": false,
-          "allowInterruptions": false,
-          "unrecognizedPrompt": "",
-          "invalidPrompt": "",
-          "defaultValueResponse": "",
-          "prompt": "${TextInput_Prompt_7bIhVy()}",
-          "property": "dialog.code"
-        },
-        {
-          "$kind": "Microsoft.BeginDialog",
-          "$designer": {
-            "id": "wN7myr"
-          },
-          "activityProcessed": true,
-          "dialog": "do_code_review",
-          "options": {
-            "prompt": "${dialog.promptChosen}",
-            "code": "${dialog.code}"
-          }
         },
         {
           "$kind": "Microsoft.RepeatDialog",

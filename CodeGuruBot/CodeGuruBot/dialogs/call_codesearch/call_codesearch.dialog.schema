@@ -1,0 +1,16 @@
+{
+  "$schema": "https://schemas.botframework.com/schemas/component/v1.0/component.schema",
+  "$role": "implements(Microsoft.IDialog)",
+  "title": "call_codesearch",
+  "type": "object",
+  "properties": {
+    "query": {
+      "title": "Query",
+      "$ref": "https://schemas.botframework.com/schemas/component/v1.0/component.schema#/definitions/stringExpression"
+    }
+  },
+  "$result": {
+    "type": "object",
+    "properties": {}
+  }
+}
