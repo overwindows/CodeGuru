@@ -1,0 +1,15 @@
+[import](common.lg)
+
+# SendActivity_Go2V8t_text()
+- ```\n${dialog.result}\n```
+# SendActivity_Go2V8t()
+[Activity
+    Text = ${SendActivity_Go2V8t_text()}
+]
+
+# SendActivity_4mFXEu_text()
+- Something went wrong: ${dialog.api_response.reasonPhrase}
+# SendActivity_4mFXEu()
+[Activity
+    Text = ${SendActivity_4mFXEu_text()}
+]

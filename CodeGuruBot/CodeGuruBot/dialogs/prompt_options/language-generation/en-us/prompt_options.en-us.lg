@@ -14,10 +14,58 @@
 
 # SendActivity_zTIDGt_text()
 - Sorry, your option is not yet supported.
-# TextInput_Prompt_7bIhVy()
+# TextInput_Prompt_3ry08G_text()
+- Sure, please provide me with your code.
+# TextInput_Prompt_3ry08G()
 [Activity
-    Text = ${TextInput_Prompt_7bIhVy_text()}
+    Text = ${TextInput_Prompt_3ry08G_text()}
 ]
 
-# TextInput_Prompt_7bIhVy_text()
+# TextInput_Prompt_HSBS0Z_text()
 - Sure, please provide me with your code.
+# TextInput_Prompt_HSBS0Z()
+[Activity
+    Text = ${TextInput_Prompt_HSBS0Z_text()}
+]
+
+# TextInput_Prompt_4Ti0ko_text()
+- Sure, please provide me with your code.
+# TextInput_Prompt_4Ti0ko()
+[Activity
+    Text = ${TextInput_Prompt_4Ti0ko_text()}
+]
+
+# TextInput_Prompt_qeMIRO_text()
+- Sure, please provide me with your code.
+# TextInput_Prompt_qeMIRO()
+[Activity
+    Text = ${TextInput_Prompt_qeMIRO_text()}
+]
+
+# TextInput_Prompt_9Yvs73_text()
+- Sure, please provide me with your code.
+# TextInput_Prompt_9Yvs73()
+[Activity
+    Text = ${TextInput_Prompt_9Yvs73_text()}
+]
+
+# TextInput_Prompt_eChXTl_text()
+- Sure, please provide me with your code.
+# TextInput_Prompt_eChXTl()
+[Activity
+    Text = ${TextInput_Prompt_eChXTl_text()}
+]
+
+# TextInput_Prompt_kmp83c_text()
+- Sure, please provide me with your query.
+# TextInput_Prompt_kmp83c()
+[Activity
+    Text = ${TextInput_Prompt_kmp83c_text()}
+]
+
+# TextInput_Prompt_zd1RnQ_text()
+- Sure, please provide me with your code.
+# TextInput_Prompt_zd1RnQ()
+[Activity
+    Text = ${TextInput_Prompt_zd1RnQ_text()}
+]
