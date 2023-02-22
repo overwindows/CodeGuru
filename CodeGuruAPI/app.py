@@ -2,6 +2,8 @@ import os
 from codeguru import beautify_code, review_code, transpile_code, commit_msg, summarize_code, generate_testcases, fix_bug, optimize_perf
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory
+import urllib.request
+import json
 
 app = Flask(__name__)
 
@@ -48,9 +50,13 @@ def hello():
          response = optimize_perf(content)
          return render_template('results.html', response = response, service = 'Performance Optimization')
       elif task == 'code_search':
-         import urllib.request
-         f = urllib.request.urlopen("http://stackoverflow.com")
-         response = f.read()
+         
+         keywords = urllib.parse.quote(content.strip())
+         http_request = "https://{url}/search?query={keywords}".format(url=os.getenv("NGROK_URL"),keywords=keywords)
+         print(http_request)
+         f = urllib.request.urlopen(http_request)
+         json_obj = json.loads(f.read())
+         response = json_obj[0]['func']
          return render_template('results.html', response = response, service = 'Code Search')
       else:
          return redirect(url_for('index'))
