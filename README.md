@@ -1,6 +1,6 @@
 ## Project Structure
 ```
-project_root/  
+CodeGuru/  
 │  
 ├── docs/  
 │   ├── design_document.docx  
