@@ -344,3 +344,7 @@ _NCrunch*
 CodeGuruAPI/diff.txt
 .vscode/settings.json
 .gitignore
+images/
+docs/markdown/
+output/
+
