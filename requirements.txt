@@ -32,13 +32,12 @@ msrest==0.6.21
 multidict==6.0.4
 oauthlib==3.2.2
 openai==0.26.5
-pandoc==2.3
 plumbum==1.8.1
 ply==3.11
 poyo==0.5.0
 pycparser==2.21
 PyJWT==2.6.0
-pypandoc==1.11
+pypandoc_binary
 python-dateutil==2.8.2
 python-slugify==8.0.0
 pywin32==306
