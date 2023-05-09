@@ -1,3 +1,45 @@
+## Project Structure
+```
+project_root/  
+│  
+├── docs/  
+│   ├── design_document.docx  
+│   └── markdown/  
+│       └── design_document.md  
+│  
+├── images/  
+│   ├── extracted/  
+│   │   ├── image1.png  
+│   │   ├── image2.png  
+│   │   └── ...  
+│   └── descriptions/  
+│       ├── image1.txt  
+│       ├── image2.txt  
+│       └── ...  
+│  
+├── src/  
+│   ├── __init__.py  
+│   ├── main.py  
+│   ├── word_to_markdown.py  
+│   ├── image_extraction.py  
+│   ├── image_to_text.py  
+|   ├── layout_generation.py
+│   └── code_generation.py  
+│  
+├── output/  
+│   └── generated_code/  
+│       ├── file1.py  
+│       ├── file2.py  
+│       └── ...  
+│  
+└── requirements.txt  
+```
+- docs/: This directory contains the design document in Word format and the converted Markdown file.
+- images/: This directory contains the extracted images from the design document and their corresponding text descriptions.
+- src/: This directory contains the source code for the project, including modules for converting the Word file to Markdown, extracting images, converting images to text, and generating code based on the extracted information.
+- output/: This directory contains the generated code files based on the design document.
+requirements.txt: This file lists the required Python packages for the project.
+
 ## Command Line Usage
 
 ### Code Review Generation
