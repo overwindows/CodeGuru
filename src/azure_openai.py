@@ -1,21 +1,78 @@
 import openai
 import os
-from typing import List
+import uuid
+from typing import List, Dict
 import constants
+import time
+
+
+def create_system_message(system_message: str) -> Dict[str, str]:
+    return {
+        constants.ROLE: constants.SYSTEM,
+        constants.CONTENT: system_message
+    }
+
+
+def create_query(query: str) -> Dict[str, str]:
+    return {
+        constants.ROLE: constants.USER,
+        constants.CONTENT: query
+    }
+
+
+def create_response(response: str) -> Dict[str, str]:
+    return {
+        constants.ROLE: constants.ASSISTANT,
+        constants.CONTENT: response
+    }
+
+
+class AzureOpenAISession:
+    def __init__(
+            self,
+            system_message: str,
+            examples: List[List[str]],
+            stop: str
+    ):
+        # Creates a random session ID
+        self.session_id = uuid.uuid4()
+
+        # initializing examples and system message
+        self.__system_message = system_message
+        self.__examples = examples
+        self.messages = self.__construct_init_messages()
+        self.stop = stop
+
+    def __construct_init_messages(self) -> List[Dict[str, str]]:
+        messages_list = list()
+        if self.__system_message:
+            messages_list.append(create_system_message(self.__system_message))
+
+        if self.__examples:
+            for example in self.__examples:
+                assert len(example) == 2
+                messages_list.append(create_query(example[0]))
+                messages_list.append(create_response(example[1]))
+
+        return messages_list
+
+    def append_query_and_response(self, query, response):
+        self.messages.append(create_query(query))
+        self.messages.append(create_response(response))
 
 
 class AzureOpenAI:
     def __init__(
             self,
-            system_message: str = "You are an AI assistant that helps people find information.",
-            examples: List[List[str]] = None,
             engine: str = constants.DEFAULT_AZURE_OPENAI_ENGINE,
             max_tokens: int = 15000,
             top_p: float = 0.95,
             temperature: float = 0.7,
             frequency_penalty: float = 0,
             presence_penalty: float = 0,
-            stop: str = None
+            stop: str = None,
+            max_retries: int = 10,
+            retry_backoff_seconds: float = 60
     ):
         self.api_type = constants.AZURE
         self.api_base = os.getenv(constants.OPENAI_API_BASE)
@@ -31,25 +88,58 @@ class AzureOpenAI:
         self.presence_penalty = presence_penalty
         self.stop = stop
 
-        # initializing examples and system message
-        self.system_message = system_message
-        self.examples = examples
+        # retries
+        self.retry_backoff_seconds = retry_backoff_seconds
+        self.max_retries = max_retries
+
+        self.sessions = dict()
 
         self.initialize()
 
-    def ask_question(self, prompt: str = None):
-        response = openai.ChatCompletion.create(
-            engine=self.engine,
-            messages=self.__construct_messages(prompt),
-            temperature=self.temperature,
-            max_tokens=self.max_tokens,
-            top_p=self.top_p,
-            frequency_penalty=self.frequency_penalty,
-            presence_penalty=self.presence_penalty,
-            stop=self.stop
-        )
+    def create_session(
+            self,
+            system_message: str = "You are an AI assistant that helps people find information.",
+            examples: List[List[str]] = None,
+            stop: str = None
+    ) -> uuid:
+        new_session = AzureOpenAISession(system_message=system_message, examples=examples, stop=stop)
+        self.sessions[new_session.session_id] = new_session
+        return new_session.session_id
 
-        return response[constants.CHOICES][0][constants.MESSAGE][constants.CONTENT]
+    def ask_question(self, query: str = None, session_id: uuid = None) -> str:
+        session = self.sessions.get(session_id, None)
+        stop = None
+        if session:
+            stop = session.stop
+
+        messages = AzureOpenAI.__construct_messages_with_session(query, session)
+        response = None
+        for try_cnt in range(self.max_retries):
+            try:
+                response = openai.ChatCompletion.create(
+                    engine=self.engine,
+                    messages=messages,
+                    temperature=self.temperature,
+                    max_tokens=self.max_tokens,
+                    top_p=self.top_p,
+                    frequency_penalty=self.frequency_penalty,
+                    presence_penalty=self.presence_penalty,
+                    stop=stop
+                )
+
+                break
+            except openai.error.RateLimitError:
+                print(f"Experienced rate limit error on try {try_cnt + 1}, retrying in {self.retry_backoff_seconds}s.")
+                time.sleep(self.retry_backoff_seconds)
+
+        if not response:
+            raise "Unable to contact Azure Open AI endpoint!"
+
+        response_content = response[constants.CHOICES][0][constants.MESSAGE][constants.CONTENT]
+        if session and response_content:
+            session.append_query_and_response(query, response_content)
+
+        return response_content
 
     def initialize(self) -> None:
         openai.api_type = self.api_type
@@ -57,29 +147,13 @@ class AzureOpenAI:
         openai.api_base = self.api_base
         openai.api_version = self.api_version
 
-    def __construct_messages(self, prompt: str = None):
+    @staticmethod
+    def __construct_messages_with_session(query: str = None, session: AzureOpenAISession = None):
         messages = list()
-        if self.system_message:
-            messages.append({
-                constants.ROLE: constants.SYSTEM,
-                constants.CONTENT: self.system_message
-            })
-        if self.examples:
-            for example in self.examples:
-                assert len(example) == 2
-                messages.append({
-                    constants.ROLE: constants.USER,
-                    constants.CONTENT: example[0]
-                })
-                messages.append({
-                    constants.ROLE: constants.ASSISTANT,
-                    constants.CONTENT: example[1]
-                })
+        if session:
+            messages.extend(session.messages)
 
-        if prompt is not None and len(prompt) > 0:
-            messages.append({
-                constants.ROLE: constants.USER,
-                constants.CONTENT: prompt
-            })
+        if query is not None and len(query) > 0:
+            messages.append(create_query(query))
 
         return messages
