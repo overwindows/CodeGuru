@@ -1,5 +1,6 @@
 import os
 import argparse
+import azure_openai
 import image_extraction
 import word_to_markdown
 
