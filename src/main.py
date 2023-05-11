@@ -47,6 +47,7 @@ def main():
     print(oai.ask_question("Hello", session_id=session_id))
     print(oai.ask_question("What was my last message?", session_id=session_id))
 
+
 if __name__ == "__main__":
     # Uncomment this line to log to stdout
     # logging.basicConfig(stream=sys.stdout, level=logging.INFO)
