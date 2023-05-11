@@ -4,6 +4,7 @@ import uuid
 from typing import List, Dict
 import constants
 import time
+import logging
 
 
 def create_system_message(system_message: str) -> Dict[str, str]:
@@ -129,7 +130,11 @@ class AzureOpenAI:
 
                 break
             except openai.error.RateLimitError:
-                print(f"Experienced rate limit error on try {try_cnt + 1}, retrying in {self.retry_backoff_seconds}s.")
+                logging.log(
+                    logging.INFO,
+                    f"Experienced rate limit error on try {try_cnt + 1}, retrying in {self.retry_backoff_seconds}s."
+                )
+
                 time.sleep(self.retry_backoff_seconds)
 
         if not response:
