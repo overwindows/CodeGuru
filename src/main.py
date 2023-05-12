@@ -2,7 +2,7 @@ import os
 import argparse
 import image_extraction
 import word_to_markdown
-
+import image_to_text
 
 def main():
     script_path = os.path.realpath(__file__)
@@ -38,6 +38,9 @@ def main():
     image_extraction.extract(args.docx_path, args.image_path)
     print('Extracted images to {}'.format(args.image_path))
 
+    print('Converting images to text...')
+    image_to_text = image_to_text.ImageToText("Salesforce/blip-image-captioning-large")
+    image_to_text.convert(args.image_path, args.output_path)
 
 if __name__ == "__main__":
     main()
