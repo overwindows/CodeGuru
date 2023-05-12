@@ -83,11 +83,14 @@ msal==1.21.0
 msrest==0.6.21
 multidict==6.0.4
 oauthlib==3.2.2
+openai==0.26.5
+plumbum==1.8.1
 ply==3.11
 poyo==0.5.0
 pycparser==2.21
 PyJWT==2.6.0
-pypandoc_binary
+pypandoc==1.11
+pypandoc-binary==1.11
 python-dateutil==2.8.2
 python-slugify==8.0.0
 PyYAML==6.0
