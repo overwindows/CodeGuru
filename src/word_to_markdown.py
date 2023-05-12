@@ -11,7 +11,7 @@ def extract(docx_path, output_dir_path):
         extra_args=[f'--extract-media={output_dir_path}']
     )
 
-    with open(output_md_file_path, 'w') as output_md_file:
-        print(output_md_file, file=output_md_file)
+    with open(output_md_file_path, 'w', newline='') as output_md_file:
+        output_md_file.write(converted_output)
 
     return converted_output
