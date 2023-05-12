@@ -40,6 +40,21 @@ CodeGuru/
 - output/: This directory contains the generated code files based on the design document.
 requirements.txt: This file lists the required Python packages for the project.
 
+## Installation
+1. Clone the repository.
+2. Install the required Python packages using the following command:
+```
+pip3 install -r requirements.txt
+```
+
+## Usage
+1. Place the design document in the root directory of the project.
+2. Run the following command:
+```
+python3 -m src.main --doc <design_doc>
+```
+where `<design_doc>` is a desgin document in Word format.
+
 ## Command Line Usage
 
 ### Code Review Generation

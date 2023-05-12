@@ -1,8 +1,9 @@
 int minval(int *A, int n) {
+  // return the minimum value
   int currmin;
 
   for (int i=0; i<n; i++)
-    if (A[i] < currmin)
+    if (A[i] > currmin)
       currmin = A[i];
   return currmin;
 }

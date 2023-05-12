@@ -347,4 +347,5 @@ CodeGuruAPI/diff.txt
 images/
 docs/markdown/
 output/
-
+offload/
+examples/bug.txt
