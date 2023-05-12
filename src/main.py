@@ -6,6 +6,7 @@ import logging
 import sys
 import image_to_text
 
+
 def main():
     script_path = os.path.realpath(__file__)
     proj_root = os.path.dirname(os.path.dirname(script_path))
@@ -32,10 +33,12 @@ def main():
 
     logging.log(logging.INFO, 'Converting docx to markdown...')
 
-    # TODO[andchung]: Read in image annotations, replace image tag in markdown, and
-    #  write annotated_extracted_md to file in the folder
-    extracted_md = word_to_markdown.extract(args.docx_path, args.markdown_path)
+    extracted_md_path = word_to_markdown.extract(args.docx_path, args.markdown_path)
 
+    # TODO: Extract text from all images, where images are in args.markdown_path/media
+    #  Then, construct a dict mapping image_path to its description.
+    #  Finally, call word_to_markdown.embed_image_description(
+    #  extracted_md_path, the dictionary, description-embedded output md file path)
     logging.log(logging.INFO, f'Converted markdown to {args.markdown_path}')
 
     # Open AI example
@@ -45,8 +48,10 @@ def main():
     print(oai.ask_question("What was my last message?", session_id=session_id))
 
     print('Converting images to text...')
-    image_to_text = image_to_text.ImageToText("Salesforce/blip-image-captioning-large")
-    image_to_text.convert(args.image_path, args.output_path)
+    image_path = "Salesforce/blip-image-captioning-large"
+    image_to_text_obj = image_to_text.ImageToText(image_path)
+    image_to_text_obj.convert(args.image_path, args.output_path)
+
 
 if __name__ == "__main__":
     # Uncomment this line to log to stdout
