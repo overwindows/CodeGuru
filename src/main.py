@@ -5,6 +5,7 @@ import word_to_markdown
 import logging
 import sys
 import image_to_text
+from layout_generation import get_directory_structure
 
 
 def main():
@@ -41,17 +42,14 @@ def main():
     #  extracted_md_path, the dictionary, description-embedded output md file path)
     logging.log(logging.INFO, f'Converted markdown to {args.markdown_path}')
 
-    # Open AI example
+    print('Converting images to text...')
+    # image_path = "Salesforce/blip-image-captioning-large"
+    # image_to_text_obj = image_to_text.ImageToText(image_path)
+    # image_to_text_obj.convert(args.image_path, args.output_path)
+
     oai = azure_openai.AzureOpenAI()
     session_id = oai.create_session()
-    print(oai.ask_question("Hello", session_id=session_id))
-    print(oai.ask_question("What was my last message?", session_id=session_id))
-
-    print('Converting images to text...')
-    image_path = "Salesforce/blip-image-captioning-large"
-    image_to_text_obj = image_to_text.ImageToText(image_path)
-    image_to_text_obj.convert(args.image_path, args.output_path)
-
+    get_directory_structure(args.markdown_path, args.output_path, oai, session_id=session_id)
 
 if __name__ == "__main__":
     # Uncomment this line to log to stdout
