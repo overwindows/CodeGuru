@@ -36,7 +36,7 @@ def get_directory_structure(markdown_path: str, output_path: str, oai: AzureOpen
     * populate README.md with appropriate content
     Instruction:
     * make sure the script can be run successfully without bug
-    * do not enclose the script in triple backticks
+    * do not enclose the script with anything
     * comment out anything that is not executable
     """
     tech_stack = oai.ask_question(prompt_tech_stack, session_id=session_id)

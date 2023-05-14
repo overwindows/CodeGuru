@@ -4,8 +4,10 @@ import azure_openai
 import word_to_markdown
 import logging
 import sys
-import image_to_text
+import subprocess
+# import image_to_text
 from layout_generation import get_directory_structure
+import platform
 
 
 def main():
@@ -50,6 +52,10 @@ def main():
     oai = azure_openai.AzureOpenAI()
     session_id = oai.create_session()
     get_directory_structure(args.markdown_path, args.output_path, oai, session_id=session_id)
+    if platform.system() == 'Windows':
+        subprocess.run(['powershell', '-File', os.path.join(args.output_path, 'create_project.ps1')])
+    else:
+        subprocess.run(['bash', os.path.join(args.output_path, 'create_project.sh')])
 
 if __name__ == "__main__":
     # Uncomment this line to log to stdout
