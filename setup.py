@@ -15,7 +15,7 @@ install_requires = [
     'numba==0.57.0',
     'numpy==1.24.3',
     'oauthlib==3.2.2',
-    'openai==0.26.5',
+    'openai==0.27.7',
     'ply==3.11',
     'pypandoc_binary',
     'python-dateutil==2.8.2',
