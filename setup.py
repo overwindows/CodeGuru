@@ -45,7 +45,7 @@ install_requires = [
     'spacy-loggers==1.0.4',
     'srsly==2.4.6',
     'stack-data==0.6.2',
-    'starlette==0.26.1',
+    'starlette==0.27.0',
     'sympy==1.12',
     'tenacity==8.2.2',
     'terminado==0.17.1',
