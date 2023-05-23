@@ -25,7 +25,7 @@ install_requires = [
     'PyYAML==6.0',
     'pyzmq==25.0.2',
     'regex==2022.10.31',
-    'requests==2.28.2',
+    'requests==2.31.0',
     'requests-oauthlib==1.3.1',
     'scikit-learn==1.2.2',
     'scipy==1.10.1',
