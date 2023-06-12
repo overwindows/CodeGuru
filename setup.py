@@ -59,7 +59,7 @@ install_requires = [
     'tornado==6.3.1',
     'tqdm==4.64.1',
     'traitlets==5.9.0',
-    'transformers==4.28.0',
+    'transformers==4.30.0',
     'typer==0.7.0',
     'typing_extensions==4.5.0',
     'tzdata==2023.3',
