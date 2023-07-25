@@ -5,7 +5,7 @@ from setuptools import setup
 install_requires = [
     'bleach==6.0.0',
     'blis==0.7.9',
-    'certifi==2022.12.7',
+    'certifi==2023.7.22',
     'cffi==1.15.1',
     'click==8.1.3',
     'huggingface-hub==0.13.4',
