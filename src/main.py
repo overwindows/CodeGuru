@@ -1,12 +1,12 @@
 import os
 import argparse
-import azure_openai
-import word_to_markdown
+import src.azure_openai as azure_openai
+import src.word_to_markdown as word_to_markdown
 import logging
 import sys
 import subprocess
 # import image_to_text
-from layout_generation import get_directory_structure
+from src.layout_generation import get_directory_structure
 import platform
 
 

@@ -2,7 +2,7 @@ import openai
 import os
 import uuid
 from typing import List, Dict
-import constants
+import src.constants as constants
 import time
 import logging
 

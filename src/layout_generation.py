@@ -1,5 +1,5 @@
 import uuid
-from azure_openai import AzureOpenAI 
+from src.azure_openai import AzureOpenAI 
 import os
 import platform
 

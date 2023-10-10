@@ -51,9 +51,9 @@ pip3 install -r requirements.txt
 1. Place the design document in the root directory of the project.
 2. Run the following command:
 ```
-python3 -m src.main --doc <design_doc>
+python3 -m src.main [-h] [-m MARKDOWN_PATH] [-o OUTPUT_PATH] docx_path
 ```
-where `<design_doc>` is a desgin document in Word format.
+where `<docx_path>` is a desgin document in Word format.
 
 ## Command Line Usage
 
