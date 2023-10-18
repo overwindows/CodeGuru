@@ -66,7 +66,7 @@ install_requires = [
     'uc-micro-py==1.0.2',
     'umap-learn==0.5.3',
     'uri-template==1.2.0',
-    'urllib3==1.26.14',
+    'urllib3==1.26.18',
     'uvicorn==0.22.0',
     'yarl==1.8.2'
 ]
