@@ -884,7 +884,7 @@ function isPathAllowed(
 
   // 2. For write/create operations, check internal editable paths (plan files, scratchpad, agent memory, job dirs)
   // This MUST come before checkPathSafetyForAutoEdit since .claude is a dangerous directory
-  // and internal editable paths live under ~/.claude/ — matching the ordering in
+  // and internal editable paths live under ~/.codeguru/ — matching the ordering in
   // checkWritePermissionForTool (filesystem.ts step 1.5)
   if (operationType !== 'read') {
     const internalEditResult = checkEditableInternalPath(resolvedPath, {})
@@ -1583,11 +1583,11 @@ function checkPathConstraintsForStatement(
   // STALE getCwd() snapshot. Example attack (finding #3):
   //   Set-Location ./.claude; Set-Content ./settings.json '...'
   // Validator sees ./settings.json → /project/settings.json (not a config file).
-  // Runtime writes /project/.claude/settings.json (Claude's permission config).
+  // Runtime writes /project/.codeguru/settings.json (Claude's permission config).
   //
   // ALTERNATIVE APPROACH (rejected): simulate cwd through the statement chain
   // — after `Set-Location ./.claude`, validate subsequent statements with
-  // cwd='./.claude'. This would be more permissive but requires careful
+  // cwd='./.codeguru'. This would be more permissive but requires careful
   // handling of:
   //   - Push-Location/Pop-Location stack semantics
   //   - Set-Location with no args (→ home on some platforms)
