@@ -1,5 +1,30 @@
 import { feature } from 'bun:bundle';
 
+// Define MACRO for dev builds — normally injected by bun bundler or bunfig preload,
+// but the global binary runs without bunfig.toml so we must define it here.
+// eslint-disable-next-line custom-rules/no-top-level-side-effects
+if (typeof (globalThis as any).MACRO === 'undefined') {
+  (globalThis as any).MACRO = {
+    VERSION: '99.0.0-dev',
+    BUILD_TIME: new Date().toISOString(),
+    PACKAGE_URL: '@anthropic-ai/claude-code',
+    NATIVE_PACKAGE_URL: '',
+    ISSUES_EXPLAINER: '',
+    FEEDBACK_CHANNEL: '',
+  };
+}
+
+// On Windows, PowerShell and bun both fail to set process.stdout.isTTY —
+// PowerShell wraps child I/O through its own pipeline so isatty() returns false
+// even in interactive sessions. Force isTTY so the interactive CLI renders.
+// The -p/--print non-interactive path is unaffected (it bypasses the TTY check).
+// eslint-disable-next-line custom-rules/no-top-level-side-effects
+if (process.platform === 'win32' && !process.stdout.isTTY) {
+  (process.stdout as NodeJS.WriteStream & { isTTY: boolean }).isTTY = true;
+  (process.stdin as NodeJS.ReadStream & { isTTY: boolean }).isTTY = true;
+  (process.stderr as NodeJS.WriteStream & { isTTY: boolean }).isTTY = true;
+}
+
 // Bugfix for corepack auto-pinning, which adds yarnpkg to peoples' package.jsons
 // eslint-disable-next-line custom-rules/no-top-level-side-effects
 process.env.COREPACK_ENABLE_AUTO_PIN = '0';
@@ -37,7 +62,7 @@ async function main(): Promise<void> {
   if (args.length === 1 && (args[0] === '--version' || args[0] === '-v' || args[0] === '-V')) {
     // MACRO.VERSION is inlined at build time
     // biome-ignore lint/suspicious/noConsole:: intentional console output
-    console.log(`${MACRO.VERSION} (Claude Code)`);
+    console.log(`${MACRO.VERSION} (CodeGuru)`);
     return;
   }
 

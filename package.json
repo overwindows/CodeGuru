@@ -7,8 +7,12 @@
   "engines": {
     "node": ">=18.0.0"
   },
+  "bin": {
+    "codeguru": "./src/entrypoints/cli.tsx"
+  },
   "scripts": {
     "check-env": "powershell -NoProfile -ExecutionPolicy Bypass -File ./src/scripts/Check-DevEnvironment.ps1",
+    "codeguru": "bun run ./src/entrypoints/cli.tsx",
     "dev": "bun run ./src/entrypoints/cli.tsx",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
@@ -59,7 +63,8 @@
     "picomatch": "^4.0.0",
     "proper-lockfile": "^4.1.2",
     "qrcode": "^1.5.4",
-    "react": "^19.0.0",
+    "react": "^0.0.0-experimental-43bcbf80-20260603",
+    "react-dom": "^0.0.0-experimental-43bcbf80-20260603",
     "react-reconciler": "^0.34.0-canary-ed69815c-20260323",
     "semver": "^7.6.0",
     "shell-quote": "^1.8.0",
