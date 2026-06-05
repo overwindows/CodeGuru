@@ -8,8 +8,16 @@ import { logError } from './log.js'
 let cachedStdinOverride: ReadStream | undefined | null = null
 
 /**
- * Gets a ReadStream for /dev/tty when stdin is piped.
- * This allows interactive Ink rendering even when stdin is a pipe.
+ * Gets a ReadStream override for stdin when the real stdin is a pipe.
+ *
+ * On Windows we ALWAYS try \\.\CONIN$ regardless of process.stdin.isTTY,
+ * because cli.tsx forces isTTY = true at module-load time on Windows so
+ * that flag can no longer be trusted as a "real console handle" indicator.
+ * CONIN$ always refers to the controlling console input buffer; if there is
+ * no console (CI, service) openSync throws and we return undefined.
+ *
+ * On non-Windows we open /dev/tty only when process.stdin is not a TTY.
+ *
  * Result is cached for the lifetime of the process.
  */
 function getStdinOverride(): ReadStream | undefined {
@@ -18,35 +26,43 @@ function getStdinOverride(): ReadStream | undefined {
     return cachedStdinOverride
   }
 
-  // No override needed if stdin is already a TTY
-  if (process.stdin.isTTY) {
-    cachedStdinOverride = undefined
-    return undefined
-  }
-
-  // Skip in CI environments
+  // Skip in CI environments — no interactive console available
   if (isEnvTruthy(process.env.CI)) {
     cachedStdinOverride = undefined
     return undefined
   }
 
-  // Skip if running MCP (input hijacking breaks MCP)
+  // Skip if running as MCP server — input hijacking breaks the protocol
   if (process.argv.includes('mcp')) {
     cachedStdinOverride = undefined
     return undefined
   }
 
-  // Windows: open \\.\CONIN$ as the equivalent of /dev/tty.
-  // When bun is spawned by npm the inherited process.stdin is a pipe
-  // (isTTY = false), which prevents Ink from enabling raw mode and
-  // keyboard input.  CONIN$ always refers to the console input buffer
-  // regardless of how stdin was redirected.
+  // ── Windows ────────────────────────────────────────────────────────────────
+  // MUST come before the process.stdin.isTTY check.
+  // cli.tsx forces process.stdin.isTTY = true on Windows so the app renders,
+  // which means isTTY = true on a pipe fd — not a real console handle.
+  // Calling setRawMode() on that pipe silently fails at the libuv layer and
+  // 'readable' events never fire.  CONIN$ bypasses the pipe and opens the
+  // real console input buffer directly.
+  //
+  // Open with 'r+' (GENERIC_READ | GENERIC_WRITE): libuv's uv_tty_init needs
+  // write access to call SetConsoleMode.
+  //
+  // resume() → pause() initialises the libuv uv_tty_t handle and calls
+  // uv_read_start so the event loop knows to wake on keystrokes; without it
+  // 'readable' never fires even after setRawMode(true).
   if (process.platform === 'win32') {
     try {
-      const ttyFd = openSync('\\\\.\\CONIN$', 'r')
+      const ttyFd = openSync('\\\\.\\CONIN$', 'r+')
       const ttyStream = new ReadStream(ttyFd)
-      // Explicitly mark as TTY so Ink's isRawModeSupported() returns true.
+      // Mark as TTY so Ink's isRawModeSupported() returns true
       ttyStream.isTTY = true
+      // Kick uv_read_start so keystrokes will flow; pause immediately so we
+      // hand a paused stream to Ink — Ink resumes it via ref() + the
+      // 'readable' listener it installs.
+      ttyStream.resume()
+      ttyStream.pause()
       cachedStdinOverride = ttyStream
       return cachedStdinOverride
     } catch (err) {
@@ -56,13 +72,19 @@ function getStdinOverride(): ReadStream | undefined {
     }
   }
 
+  // ── Non-Windows ────────────────────────────────────────────────────────────
+  // No override needed when stdin is already a real TTY
+  if (process.stdin.isTTY) {
+    cachedStdinOverride = undefined
+    return undefined
+  }
+
   // Try to open /dev/tty as an alternative input source
   try {
     const ttyFd = openSync('/dev/tty', 'r')
     const ttyStream = new ReadStream(ttyFd)
-    // Explicitly set isTTY to true since we know /dev/tty is a TTY.
-    // This is needed because some runtimes (like Bun's compiled binaries)
-    // may not correctly detect isTTY on ReadStream created from a file descriptor.
+    // Explicitly set isTTY — some runtimes (Bun compiled binaries) may not
+    // detect it automatically on an fd-constructed ReadStream.
     ttyStream.isTTY = true
     cachedStdinOverride = ttyStream
     return cachedStdinOverride
