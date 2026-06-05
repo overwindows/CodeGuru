@@ -36,10 +36,24 @@ function getStdinOverride(): ReadStream | undefined {
     return undefined
   }
 
-  // No /dev/tty on Windows
+  // Windows: open \\.\CONIN$ as the equivalent of /dev/tty.
+  // When bun is spawned by npm the inherited process.stdin is a pipe
+  // (isTTY = false), which prevents Ink from enabling raw mode and
+  // keyboard input.  CONIN$ always refers to the console input buffer
+  // regardless of how stdin was redirected.
   if (process.platform === 'win32') {
-    cachedStdinOverride = undefined
-    return undefined
+    try {
+      const ttyFd = openSync('\\\\.\\CONIN$', 'r')
+      const ttyStream = new ReadStream(ttyFd)
+      // Explicitly mark as TTY so Ink's isRawModeSupported() returns true.
+      ttyStream.isTTY = true
+      cachedStdinOverride = ttyStream
+      return cachedStdinOverride
+    } catch (err) {
+      logError(err as Error)
+      cachedStdinOverride = undefined
+      return undefined
+    }
   }
 
   // Try to open /dev/tty as an alternative input source
