@@ -48,21 +48,12 @@ function getStdinOverride(): ReadStream | undefined {
   //
   // Open with 'r+' (GENERIC_READ | GENERIC_WRITE): libuv's uv_tty_init needs
   // write access to call SetConsoleMode.
-  //
-  // resume() → pause() initialises the libuv uv_tty_t handle and calls
-  // uv_read_start so the event loop knows to wake on keystrokes; without it
-  // 'readable' never fires even after setRawMode(true).
   if (process.platform === 'win32') {
     try {
       const ttyFd = openSync('\\\\.\\CONIN$', 'r+')
       const ttyStream = new ReadStream(ttyFd)
       // Mark as TTY so Ink's isRawModeSupported() returns true
       ttyStream.isTTY = true
-      // Kick uv_read_start so keystrokes will flow; pause immediately so we
-      // hand a paused stream to Ink — Ink resumes it via ref() + the
-      // 'readable' listener it installs.
-      ttyStream.resume()
-      ttyStream.pause()
       cachedStdinOverride = ttyStream
       return cachedStdinOverride
     } catch (err) {
