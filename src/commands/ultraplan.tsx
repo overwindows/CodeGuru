@@ -43,9 +43,16 @@ function getUltraplanModel(): string {
 //
 // Bundler inlines .txt as a string; the test runner wraps it as {default}.
 /* eslint-disable @typescript-eslint/no-require-imports */
-const _rawPrompt = require('../utils/ultraplan/prompt.txt');
+let _rawPrompt: unknown;
+try {
+  _rawPrompt = require('../utils/ultraplan/prompt.txt');
+} catch {
+  // Bun dev mode (bun run, no bundler) cannot require() .txt files.
+  // The bundler inlines .txt at build time; fall back to the literal here.
+  _rawPrompt = 'Create a comprehensive implementation plan for the given task.';
+}
 /* eslint-enable @typescript-eslint/no-require-imports */
-const DEFAULT_INSTRUCTIONS: string = (typeof _rawPrompt === 'string' ? _rawPrompt : _rawPrompt.default).trimEnd();
+const DEFAULT_INSTRUCTIONS: string = (typeof _rawPrompt === 'string' ? _rawPrompt : (_rawPrompt as {default: string}).default ?? '').trimEnd();
 
 // Dev-only prompt override resolved eagerly at module load.
 // Gated to ant builds (USER_TYPE is a build-time define,

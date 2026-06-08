@@ -232,7 +232,24 @@ export default class App extends PureComponent<Props, State> {
           stdin.ref();
         }
         stdin.setRawMode(true);
-        stdin.addListener('readable', this.handleReadable);
+        if (process.platform === 'win32') {
+          // Bun 1.x on Windows: neither 'readable' nor 'data' listeners alone
+          // trigger uv_read_start — the underlying libuv TTY read loop does NOT
+          // start automatically when a listener is added (unlike Node.js).
+          //
+          // Fix: use a 'data' listener (flowing mode) AND explicitly call
+          // stdin.resume() to force Bun's Windows TTY stream into flowing mode.
+          // Unlike resume()+pause() (which was the broken prior approach),
+          // resume() with a 'data' listener attached is permanent: Node/Bun
+          // only auto-pause again when the last 'data' listener is removed.
+          // handleData feeds chunks directly into processInput.
+          process.stderr.write('[App.tsx win32] adding data listener + calling resume()\n');
+          stdin.addListener('data', this.handleData);
+          stdin.resume();
+          process.stderr.write('[App.tsx win32] resume() called — stream should be flowing\n');
+        } else {
+          stdin.addListener('readable', this.handleReadable);
+        }
         // Enable bracketed paste mode
         this.props.stdout.write(EBP);
         // Enable terminal focus reporting (DECSET 1004)
@@ -278,7 +295,11 @@ export default class App extends PureComponent<Props, State> {
       // Disable bracketed paste mode
       this.props.stdout.write(DBP);
       stdin.setRawMode(false);
-      stdin.removeListener('readable', this.handleReadable);
+      if (process.platform === 'win32') {
+        stdin.removeListener('data', this.handleData);
+      } else {
+        stdin.removeListener('readable', this.handleReadable);
+      }
       // Bun 1.x on Windows does not implement .unref() on stdin — guard.
       if (typeof (stdin as NodeJS.ReadStream & { unref?: () => void }).unref === 'function') {
         stdin.unref();
@@ -365,11 +386,50 @@ export default class App extends PureComponent<Props, State> {
       const {
         stdin
       } = this.props;
-      if (this.rawModeEnabledCount > 0 && !stdin.listeners('readable').includes(this.handleReadable)) {
+      if (process.platform === 'win32') {
+        if (this.rawModeEnabledCount > 0 && !stdin.listeners('data').includes(this.handleData)) {
+          logForDebugging('handleData: re-attaching stdin data listener + resume() after error recovery', {
+            level: 'warn'
+          });
+          stdin.addListener('data', this.handleData);
+          stdin.resume();
+        }
+      } else if (this.rawModeEnabledCount > 0 && !stdin.listeners('readable').includes(this.handleReadable)) {
         logForDebugging('handleReadable: re-attaching stdin readable listener after error recovery', {
           level: 'warn'
         });
         stdin.addListener('readable', this.handleReadable);
+      }
+    }
+  };
+  // Windows-only: flowing-mode 'data' listener.
+  // This is used instead of 'readable' on Windows because Bun 1.x TTY streams
+  // only start the underlying libuv read loop when the stream is in flowing
+  // mode ('data' listener attached or resume() called permanently). See the
+  // comment in handleSetRawMode for full details.
+  handleData = (chunk: string | Buffer): void => {
+    const now = Date.now();
+    if (now - this.lastStdinTime > STDIN_RESUME_GAP_MS) {
+      this.props.onStdinResume?.();
+    }
+    this.lastStdinTime = now;
+    try {
+      this.processInput(chunk);
+    } catch (error) {
+      // In Bun, an uncaught throw inside a stream 'data' handler can
+      // permanently wedge the stream. Catching here ensures subsequent
+      // keystrokes are still delivered.
+      logError(error);
+
+      // Re-attach the listener in case the exception detached it.
+      // Bun may remove the listener after an error; without this,
+      // the session freezes permanently (stdin reader dead, event loop alive).
+      if (this.rawModeEnabledCount > 0 && !this.props.stdin.listeners('data').includes(this.handleData)) {
+        logForDebugging('handleData: re-attaching stdin data listener + resume() after error recovery', {
+          level: 'warn'
+        });
+        this.props.stdin.addListener('data', this.handleData);
+        this.props.stdin.resume();
       }
     }
   };

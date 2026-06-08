@@ -986,7 +986,7 @@ async function performPluginUpdate({
 
     // Try to load manifest from plugin directory (for version info)
     let pluginManifest: PluginManifest | undefined
-    const manifestPath = join(sourcePath, '.claude-plugin', 'plugin.json')
+    const manifestPath = join(sourcePath, '.codeguru-plugin', 'plugin.json')
     try {
       pluginManifest = await loadPluginManifest(
         manifestPath,

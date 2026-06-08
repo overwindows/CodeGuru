@@ -63,14 +63,14 @@ export function IdeOnboardingDialog(t0) {
   const mentionShortcut = env.platform === "darwin" ? "Cmd+Option+K" : "Ctrl+Alt+K";
   let t5;
   if ($[7] === Symbol.for("react.memo_cache_sentinel")) {
-    t5 = <Text color="claude">✻ </Text>;
+    t5 = <Text color="codeguru">✻ </Text>;
     $[7] = t5;
   } else {
     t5 = $[7];
   }
   let t6;
   if ($[8] !== ideName) {
-    t6 = <>{t5}<Text>Welcome to Claude Code for {ideName}</Text></>;
+    t6 = <>{t5}<Text>Welcome to CodeGuru for {ideName}</Text></>;
     $[8] = ideName;
     $[9] = t6;
   } else {
@@ -100,7 +100,7 @@ export function IdeOnboardingDialog(t0) {
   }
   let t11;
   if ($[13] === Symbol.for("react.memo_cache_sentinel")) {
-    t11 = <Text>• Review Claude Code's changes{" "}{t10}{" "}<Text color="diffRemovedWord">-22</Text> in the comfort of your IDE</Text>;
+    t11 = <Text>• Review CodeGuru's changes{" "}{t10}{" "}<Text color="diffRemovedWord">-22</Text> in the comfort of your IDE</Text>;
     $[13] = t11;
   } else {
     t11 = $[13];

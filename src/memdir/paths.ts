@@ -7,7 +7,7 @@ import {
 } from '../bootstrap/state.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../services/analytics/growthbook.js'
 import {
-  getClaudeConfigHomeDir,
+  getCodeGuruConfigHomeDir,
   isEnvDefinedFalsy,
   isEnvTruthy,
 } from '../utils/envUtils.js'
@@ -86,7 +86,7 @@ export function getMemoryBaseDir(): string {
   if (process.env.CLAUDE_CODE_REMOTE_MEMORY_DIR) {
     return process.env.CLAUDE_CODE_REMOTE_MEMORY_DIR
   }
-  return getClaudeConfigHomeDir()
+  return getCodeGuruConfigHomeDir()
 }
 
 const AUTO_MEM_DIRNAME = 'memory'

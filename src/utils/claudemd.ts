@@ -50,13 +50,13 @@ import { getAutoMemEntrypoint, isAutoMemoryEnabled } from '../memdir/paths.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../services/analytics/growthbook.js'
 import {
   getCurrentProjectConfig,
-  getManagedClaudeRulesDir,
+  getManagedCodeGuruRulesDir,
   getMemoryPath,
-  getUserClaudeRulesDir,
+  getUserCodeGuruRulesDir,
 } from './config.js'
 import { logForDebugging } from './debug.js'
 import { logForDiagnosticsNoPII } from './diagLogs.js'
-import { getClaudeConfigHomeDir, isEnvTruthy } from './envUtils.js'
+import { getCodeGuruConfigHomeDir, isEnvTruthy } from './envUtils.js'
 import { getErrnoCode } from './errors.js'
 import { normalizePathForComparison } from './file.js'
 import { cacheKeys, type FileStateCache } from './fileStateCache.js'
@@ -410,7 +410,7 @@ function handleMemoryFileReadError(error: unknown, filePath: string): void {
     // Don't log the full file path to avoid PII/security issues
     logEvent('tengu_claude_md_permission_error', {
       is_access_error: 1,
-      has_home_dir: filePath.includes(getClaudeConfigHomeDir()) ? 1 : 0,
+      has_home_dir: filePath.includes(getCodeGuruConfigHomeDir()) ? 1 : 0,
     })
   }
 }
@@ -780,7 +780,7 @@ export async function processMdRules({
     if (error instanceof Error && error.message.includes('EACCES')) {
       logEvent('tengu_claude_rules_md_permission_error', {
         is_access_error: 1,
-        has_home_dir: rulesDir.includes(getClaudeConfigHomeDir()) ? 1 : 0,
+        has_home_dir: rulesDir.includes(getCodeGuruConfigHomeDir()) ? 1 : 0,
       })
     }
     return []
@@ -811,7 +811,7 @@ export const getMemoryFiles = memoize(
       )),
     )
     // Process Managed .codeguru/rules/*.md files
-    const managedClaudeRulesDir = getManagedClaudeRulesDir()
+    const managedClaudeRulesDir = getManagedCodeGuruRulesDir()
     result.push(
       ...(await processMdRules({
         rulesDir: managedClaudeRulesDir,
@@ -834,7 +834,7 @@ export const getMemoryFiles = memoize(
         )),
       )
       // Process User ~/.codeguru/rules/*.md files
-      const userClaudeRulesDir = getUserClaudeRulesDir()
+      const userClaudeRulesDir = getUserCodeGuruRulesDir()
       result.push(
         ...(await processMdRules({
           rulesDir: userClaudeRulesDir,
@@ -1209,7 +1209,7 @@ export async function getManagedAndUserConditionalRules(
   const result: MemoryFileInfo[] = []
 
   // Process Managed conditional .codeguru/rules/*.md files
-  const managedClaudeRulesDir = getManagedClaudeRulesDir()
+  const managedClaudeRulesDir = getManagedCodeGuruRulesDir()
   result.push(
     ...(await processConditionedMdRules(
       targetPath,
@@ -1222,7 +1222,7 @@ export async function getManagedAndUserConditionalRules(
 
   if (isSettingSourceEnabled('userSettings')) {
     // Process User conditional .codeguru/rules/*.md files
-    const userClaudeRulesDir = getUserClaudeRulesDir()
+    const userClaudeRulesDir = getUserCodeGuruRulesDir()
     result.push(
       ...(await processConditionedMdRules(
         targetPath,

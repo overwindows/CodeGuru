@@ -3,13 +3,13 @@ import { getOauthConfig } from '../../constants/oauth.js'
 import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js'
 import { getAuthHeaders } from '../../utils/http.js'
 import { logError } from '../../utils/log.js'
-import { getClaudeCodeUserAgent } from '../../utils/userAgent.js'
+import { getCodeGuruUserAgent } from '../../utils/userAgent.js'
 
 /**
  * Fetch the user's first Claude Code token date and store in config.
  * This is called after successful login to cache when they started using Claude Code.
  */
-export async function fetchAndStoreClaudeCodeFirstTokenDate(): Promise<void> {
+export async function fetchAndStoreCodeGuruFirstTokenDate(): Promise<void> {
   try {
     const config = getGlobalConfig()
 
@@ -29,7 +29,7 @@ export async function fetchAndStoreClaudeCodeFirstTokenDate(): Promise<void> {
     const response = await axios.get(url, {
       headers: {
         ...authHeaders.headers,
-        'User-Agent': getClaudeCodeUserAgent(),
+        'User-Agent': getCodeGuruUserAgent(),
       },
       timeout: 10000,
     })

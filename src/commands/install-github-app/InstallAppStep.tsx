@@ -76,7 +76,7 @@ export function InstallAppStep(t0) {
   }
   let t9;
   if ($[9] === Symbol.for("react.memo_cache_sentinel")) {
-    t9 = <Box marginTop={1}><Text dimColor={true}>Having trouble? See manual setup instructions at:{" "}<Text color="claude">{GITHUB_ACTION_SETUP_DOCS_URL}</Text></Text></Box>;
+    t9 = <Box marginTop={1}><Text dimColor={true}>Having trouble? See manual setup instructions at:{" "}<Text color="codeguru">{GITHUB_ACTION_SETUP_DOCS_URL}</Text></Text></Box>;
     $[9] = t9;
   } else {
     t9 = $[9];

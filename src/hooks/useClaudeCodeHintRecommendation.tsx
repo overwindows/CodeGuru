@@ -21,7 +21,7 @@ type UseClaudeCodeHintRecommendationResult = {
   recommendation: PluginHintRecommendation | null;
   handleResponse: (response: 'yes' | 'no' | 'disable') => void;
 };
-export function useClaudeCodeHintRecommendation() {
+export function useCodeGuruHintRecommendation() {
   const $ = _c(11);
   const pendingHint = React.useSyncExternalStore(subscribeToPendingHint, getPendingHintSnapshot);
   const {
@@ -42,7 +42,7 @@ export function useClaudeCodeHintRecommendation() {
       tryResolve(async () => {
         const resolved = await resolvePluginHint(pendingHint);
         if (resolved) {
-          logForDebugging(`[useClaudeCodeHintRecommendation] surfacing ${resolved.pluginId} from ${resolved.sourceCommand}`);
+          logForDebugging(`[useCodeGuruHintRecommendation] surfacing ${resolved.pluginId} from ${resolved.sourceCommand}`);
           markShownThisSession();
         }
         if (getPendingHintSnapshot() === pendingHint) {

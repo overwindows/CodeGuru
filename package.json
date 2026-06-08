@@ -3,7 +3,7 @@
   "version": "0.0.0-dev",
   "private": true,
   "type": "module",
-  "description": "Dev harness for Claude Code; application source is in src/",
+  "description": "Dev harness for CodeGuru; application source is in src/",
   "engines": {
     "node": ">=18.0.0"
   },
@@ -67,7 +67,7 @@
     "qrcode": "^1.5.4",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-reconciler": "^0.31.0",
+    "react-reconciler": "^0.32.0",
     "semver": "^7.8.2",
     "shell-quote": "^1.8.4",
     "signal-exit": "^4.1.0",
