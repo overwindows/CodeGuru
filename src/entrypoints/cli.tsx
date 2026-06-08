@@ -14,6 +14,44 @@ if (typeof (globalThis as any).MACRO === 'undefined') {
   };
 }
 
+// On Windows, when bun is spawned by npm/npx the inherited stdin fd is a pipe
+// (isatty() returns false at the OS level).  Ink's setRawMode() calls
+// uv_tty_init which needs a real Console handle — it silently fails on a pipe,
+// so 'readable' events never fire and keyboard input is dead.
+//
+// Fix: if stdin is NOT a real TTY, re-exec this exact process with CONIN$
+// (\\.\CONIN$) open as fd 0.  We inherit stdout/stderr unchanged so rendering
+// is unaffected.  The re-launched child has a genuine Console handle as stdin
+// from Bun's perspective — no JS-layer hacks needed.
+//
+// Guard: CODEGURU_CONIN_RELAUNCH=1 is set in the child so we never loop.
+// Also skip for MCP / CI / non-interactive paths.
+// eslint-disable-next-line custom-rules/no-top-level-side-effects
+if (
+  process.platform === 'win32' &&
+  !process.stdin.isTTY &&
+  !process.env.CODEGURU_CONIN_RELAUNCH &&
+  !process.env.CI &&
+  !process.argv.includes('mcp')
+) {
+  const { openSync, closeSync } = await import('fs');
+  const { spawnSync } = await import('child_process');
+  let coninFd = -1;
+  try {
+    // Open CONIN$ with r+ so libuv can call SetConsoleMode (needs write access)
+    coninFd = openSync('\\\\.\\CONIN$', 'r+');
+    const result = spawnSync(process.execPath, process.argv.slice(1), {
+      stdio: [coninFd, 'inherit', 'inherit'],
+      env: { ...process.env, CODEGURU_CONIN_RELAUNCH: '1' },
+    });
+    if (coninFd >= 0) closeSync(coninFd);
+    process.exit(result.status ?? 0);
+  } catch {
+    // CONIN$ unavailable (no console, e.g. running as a service) — fall through
+    if (coninFd >= 0) try { closeSync(coninFd); } catch { /* ignore */ }
+  }
+}
+
 // On Windows, PowerShell and bun both fail to set process.stdout.isTTY —
 // PowerShell wraps child I/O through its own pipeline so isatty() returns false
 // even in interactive sessions. Force isTTY so the interactive CLI renders.
@@ -23,6 +61,17 @@ if (process.platform === 'win32' && !process.stdout.isTTY) {
   (process.stdout as NodeJS.WriteStream & { isTTY: boolean }).isTTY = true;
   (process.stdin as NodeJS.ReadStream & { isTTY: boolean }).isTTY = true;
   (process.stderr as NodeJS.WriteStream & { isTTY: boolean }).isTTY = true;
+}
+
+// Bun 1.x on Windows does not expose .ref()/.unref() on process.stdin.
+// Ink calls stdin.ref() in handleSetRawMode before setRawMode(true) —
+// if the method is missing it throws "stdin.ref is not a function" and
+// the app crashes immediately. Patch no-op stubs so Ink's calls succeed.
+// eslint-disable-next-line custom-rules/no-top-level-side-effects
+if (process.platform === 'win32') {
+  const stdin = process.stdin as NodeJS.ReadStream & { ref?: () => void; unref?: () => void };
+  if (typeof stdin.ref !== 'function') stdin.ref = () => {};
+  if (typeof stdin.unref !== 'function') stdin.unref = () => {};
 }
 
 // Bugfix for corepack auto-pinning, which adds yarnpkg to peoples' package.jsons

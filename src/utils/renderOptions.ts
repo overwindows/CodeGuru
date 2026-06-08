@@ -10,11 +10,9 @@ let cachedStdinOverride: ReadStream | undefined | null = null
 /**
  * Gets a ReadStream override for stdin when the real stdin is a pipe.
  *
- * On Windows we ALWAYS try \\.\CONIN$ regardless of process.stdin.isTTY,
- * because cli.tsx forces isTTY = true at module-load time on Windows so
- * that flag can no longer be trusted as a "real console handle" indicator.
- * CONIN$ always refers to the controlling console input buffer; if there is
- * no console (CI, service) openSync throws and we return undefined.
+ * On Windows, the relaunch in cli.tsx ensures the process is started with
+ * a real console handle as fd 0, so process.stdin.isTTY is naturally true
+ * and no override is needed.
  *
  * On non-Windows we open /dev/tty only when process.stdin is not a TTY.
  *
@@ -24,6 +22,12 @@ function getStdinOverride(): ReadStream | undefined {
   // Return cached result if already computed
   if (cachedStdinOverride !== null) {
     return cachedStdinOverride
+  }
+
+  // No override needed if stdin is already a TTY
+  if (process.stdin.isTTY) {
+    cachedStdinOverride = undefined
+    return undefined
   }
 
   // Skip in CI environments — no interactive console available
@@ -38,39 +42,15 @@ function getStdinOverride(): ReadStream | undefined {
     return undefined
   }
 
-  // ── Windows ────────────────────────────────────────────────────────────────
-  // MUST come before the process.stdin.isTTY check.
-  // cli.tsx forces process.stdin.isTTY = true on Windows so the app renders,
-  // which means isTTY = true on a pipe fd — not a real console handle.
-  // Calling setRawMode() on that pipe silently fails at the libuv layer and
-  // 'readable' events never fire.  CONIN$ bypasses the pipe and opens the
-  // real console input buffer directly.
-  //
-  // Open with 'r+' (GENERIC_READ | GENERIC_WRITE): libuv's uv_tty_init needs
-  // write access to call SetConsoleMode.
+  // Windows: relaunch in cli.tsx handles console handle setup.
+  // If we reach here on Windows (relaunch failed / no console), there is
+  // nothing useful we can do — return undefined and let Ink use the pipe.
   if (process.platform === 'win32') {
-    try {
-      const ttyFd = openSync('\\\\.\\CONIN$', 'r+')
-      const ttyStream = new ReadStream(ttyFd)
-      // Mark as TTY so Ink's isRawModeSupported() returns true
-      ttyStream.isTTY = true
-      cachedStdinOverride = ttyStream
-      return cachedStdinOverride
-    } catch (err) {
-      logError(err as Error)
-      cachedStdinOverride = undefined
-      return undefined
-    }
-  }
-
-  // ── Non-Windows ────────────────────────────────────────────────────────────
-  // No override needed when stdin is already a real TTY
-  if (process.stdin.isTTY) {
     cachedStdinOverride = undefined
     return undefined
   }
 
-  // Try to open /dev/tty as an alternative input source
+  // Non-Windows: try /dev/tty as an alternative input source
   try {
     const ttyFd = openSync('/dev/tty', 'r')
     const ttyStream = new ReadStream(ttyFd)
