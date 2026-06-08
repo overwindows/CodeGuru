@@ -226,7 +226,11 @@ export default class App extends PureComponent<Props, State> {
         // coexist -- our handler would drain stdin before Ink's can see it.
         // The buffered text is preserved for REPL.tsx via consumeEarlyInput().
         stopCapturingEarlyInput();
-        stdin.ref();
+        // Bun 1.x on Windows does not implement .ref()/.unref() on stdin —
+        // guard so the app doesn't crash before setRawMode.
+        if (typeof (stdin as NodeJS.ReadStream & { ref?: () => void }).ref === 'function') {
+          stdin.ref();
+        }
         stdin.setRawMode(true);
         stdin.addListener('readable', this.handleReadable);
         // Enable bracketed paste mode
@@ -275,7 +279,10 @@ export default class App extends PureComponent<Props, State> {
       this.props.stdout.write(DBP);
       stdin.setRawMode(false);
       stdin.removeListener('readable', this.handleReadable);
-      stdin.unref();
+      // Bun 1.x on Windows does not implement .unref() on stdin — guard.
+      if (typeof (stdin as NodeJS.ReadStream & { unref?: () => void }).unref === 'function') {
+        stdin.unref();
+      }
     }
   };
 
