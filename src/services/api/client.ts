@@ -10,6 +10,9 @@ import {
   refreshAndGetAwsCredentials,
   refreshGcpCredentialsIfNeeded,
 } from 'src/utils/auth.js'
+import {
+  wrapFetchWithOpenAICompat,
+} from './openAICompatAdapter.js'
 import { getUserAgent } from 'src/utils/http.js'
 import { getSmallFastModel } from 'src/utils/model/model.js'
 import {
@@ -360,7 +363,17 @@ function buildFetch(
   source: string | undefined,
 ): ClientOptions['fetch'] {
   // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
-  const inner = fetchOverride ?? globalThis.fetch
+  let inner = (fetchOverride ?? globalThis.fetch) as (
+    input: RequestInfo | URL,
+    init?: RequestInit,
+  ) => Promise<Response>
+
+  // Always wrap with the OpenAI-compat adapter. It checks isOpenAICompatMode()
+  // lazily on every fetch call so it respects ANTHROPIC_BASE_URL even when
+  // that env var is set (via the CODEGURU_* alias bridge) after this client
+  // object was constructed.
+  inner = wrapFetchWithOpenAICompat(inner)
+
   // Only send to the first-party API — Bedrock/Vertex/Foundry don't log it
   // and unknown headers risk rejection by strict proxies (inc-4029 class).
   const injectClientRequestId =

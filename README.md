@@ -38,7 +38,29 @@ This directory is the **project root** for local development. **Application sour
    npm install react@^19.0.0 react-reconciler@0.34.0-canary-ed69815c-20260323 --legacy-peer-deps
    ```
 
-3. Optional: set your API key:
+3. Configure your model provider via `%USERPROFILE%\.codeguru\settings.json`:
+
+   **SambaNova (OpenAI-compatible) example — `C:\Users\<you>\.codeguru\settings.json`:**
+
+   ```json
+   {
+     "env": {
+       "CODEGURU_BASE_URL": "https://api.sambanova.ai/v1",
+       "CODEGURU_AUTH_TOKEN": "<your-sambanova-api-key>",
+       "CODEGURU_MODEL": "MiniMax-M2.7",
+       "CODEGURU_DEFAULT_HAIKU_MODEL": "MiniMax-M2.7",
+       "CODEGURU_CODE_AUTO_COMPACT_WINDOW": "200000",
+       "CODEGURU_AUTOCOMPACT_PCT_OVERRIDE": "60"
+     },
+     "theme": "auto"
+   }
+   ```
+
+   All `CODEGURU_*` keys are bridged to their `ANTHROPIC_*` / `CLAUDE_*` equivalents at runtime — you never need to set `ANTHROPIC_*` variables directly.  Any OpenAI-compatible provider works: just point `CODEGURU_BASE_URL` at the provider's `/v1` endpoint, set `CODEGURU_AUTH_TOKEN` to your key, and set `CODEGURU_MODEL` to the model name.
+
+   > **Note:** include `/v1` in `CODEGURU_BASE_URL` — CodeGuru strips it before handing the URL to the SDK, which adds its own `/v1/…` paths. The setting value matches what your provider documents (e.g. `https://api.sambanova.ai/v1`).
+
+   **Optional: Anthropic API key instead:**
 
    ```powershell
    $env:ANTHROPIC_API_KEY = "sk-ant-..."

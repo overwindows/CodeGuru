@@ -30,9 +30,45 @@ function withoutSSHTunnelVars(
     ANTHROPIC_API_KEY: _3,
     ANTHROPIC_AUTH_TOKEN: _4,
     CLAUDE_CODE_OAUTH_TOKEN: _5,
+    CODEGURU_BASE_URL: _6,
+    CODEGURU_AUTH_TOKEN: _7,
     ...rest
   } = env
   return rest
+}
+
+/**
+ * Map CODEGURU_* env vars to their ANTHROPIC_* equivalents so the rest of the
+ * codebase continues to work without modification. Called after settings env
+ * vars have been applied.
+ *
+ * Mapping:
+ *   CODEGURU_BASE_URL           → ANTHROPIC_BASE_URL
+ *   CODEGURU_AUTH_TOKEN         → ANTHROPIC_AUTH_TOKEN
+ *   CODEGURU_MODEL              → ANTHROPIC_MODEL
+ *   CODEGURU_DEFAULT_HAIKU_MODEL → ANTHROPIC_DEFAULT_HAIKU_MODEL
+ */
+function applyCodeGuruEnvAliases(): void {
+  const aliases: Array<[string, string]> = [
+    ['CODEGURU_BASE_URL', 'ANTHROPIC_BASE_URL'],
+    ['CODEGURU_AUTH_TOKEN', 'ANTHROPIC_AUTH_TOKEN'],
+    ['CODEGURU_MODEL', 'ANTHROPIC_MODEL'],
+    ['CODEGURU_DEFAULT_HAIKU_MODEL', 'ANTHROPIC_DEFAULT_HAIKU_MODEL'],
+    ['CODEGURU_CODE_AUTO_COMPACT_WINDOW', 'CLAUDE_CODE_AUTO_COMPACT_WINDOW'],
+    ['CODEGURU_AUTOCOMPACT_PCT_OVERRIDE', 'CLAUDE_AUTOCOMPACT_PCT_OVERRIDE'],
+  ]
+  for (const [src, dst] of aliases) {
+    if (process.env[src] !== undefined) {
+      let value = process.env[src]!
+      // The Anthropic SDK constructs URLs as baseURL + "/v1/messages" etc.
+      // If the user configured a URL that already ends with "/v1", strip it
+      // to avoid double-prefix (e.g. ".../v1/v1/messages").
+      if (src === 'CODEGURU_BASE_URL') {
+        value = value.replace(/\/v1\/?$/, '')
+      }
+      process.env[dst] = value
+    }
+  }
 }
 
 /**
@@ -175,6 +211,9 @@ export function applySafeConfigEnvironmentVariables(): void {
       process.env[key] = value
     }
   }
+
+  // Bridge CODEGURU_* vars to ANTHROPIC_* so the SDK and existing code work.
+  applyCodeGuruEnvAliases()
 }
 
 /**
@@ -196,4 +235,7 @@ export function applyConfigEnvironmentVariables(): void {
 
   // Reconfigure proxy/mTLS agents to pick up any proxy env vars from settings
   configureGlobalAgents()
+
+  // Bridge CODEGURU_* vars to ANTHROPIC_* so the SDK and existing code work.
+  applyCodeGuruEnvAliases()
 }

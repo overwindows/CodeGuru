@@ -10,6 +10,7 @@ import {
   AuthenticationError,
 } from '@anthropic-ai/sdk'
 import { getModelStrings } from './modelStrings.js'
+import { isOpenAICompatMode } from '../../services/api/openAICompatAdapter.js'
 
 // Cache valid models to avoid repeated API calls
 const validModelCache = new Map<string, boolean>()
@@ -43,6 +44,12 @@ export async function validateModel(
 
   // Check if it matches ANTHROPIC_CUSTOM_MODEL_OPTION (pre-validated by the user)
   if (normalizedModel === process.env.ANTHROPIC_CUSTOM_MODEL_OPTION) {
+    return { valid: true }
+  }
+
+  // In OpenAI-compat mode, skip the live API validation — the endpoint uses
+  // /chat/completions format and would 404 on the validation sideQuery.
+  if (isOpenAICompatMode()) {
     return { valid: true }
   }
 
