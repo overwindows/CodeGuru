@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"const pkg = require\\(''''./node_modules/@anthropic-ai/sdk/package.json''''\\); console.log\\(''''version:'''', pkg.version\\); console.log\\(''''description:'''', pkg.description\\)\")",
+      "Skill(update-config)"
+    ]
+  }
+}
