@@ -5,7 +5,7 @@
 
 // @ts-nocheck
 globalThis.MACRO = {
-  VERSION: '99.0.0-dev',
+  VERSION: '0.0.1-beta',
   BUILD_TIME: new Date().toISOString(),
   PACKAGE_URL: '@anthropic-ai/claude-code',
   NATIVE_PACKAGE_URL: '',

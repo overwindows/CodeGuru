@@ -5,7 +5,7 @@ import { feature } from 'bun:bundle';
 // eslint-disable-next-line custom-rules/no-top-level-side-effects
 if (typeof (globalThis as any).MACRO === 'undefined') {
   (globalThis as any).MACRO = {
-    VERSION: '99.0.0-dev',
+    VERSION: '0.0.1-beta',
     BUILD_TIME: new Date().toISOString(),
     PACKAGE_URL: 'codeguru',
     NATIVE_PACKAGE_URL: '',
