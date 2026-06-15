@@ -11,7 +11,7 @@
     "codeguru": "./src/entrypoints/cli.tsx"
   },
   "scripts": {
-    "check-env": "powershell -NoProfile -ExecutionPolicy Bypass -File ./src/scripts/Check-DevEnvironment.ps1",
+    "check-env": "python3 scripts/check-dev-environment.py",
     "codeguru": "bun run ./src/entrypoints/cli.tsx",
     "dev": "bun run ./src/entrypoints/cli.tsx",
     "build": "bun build --compile --target=bun-windows-x64 --outfile=dist/codeguru.exe ./src/entrypoints/cli.tsx",

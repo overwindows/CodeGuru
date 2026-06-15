@@ -7,10 +7,19 @@ This directory is the **project root** for local development. **Application sour
 | **`package.json`**, **`bunfig.toml`**, **`tsconfig.json`** | Install and editor/tooling from **this** folder |
 | **`src/`** | TypeScript source (CLI, REPL, services, tools) — see [`src/README.md`](./src/README.md) |
 | **[`SETUP.md`](./SETUP.md)** | Run the official app vs develop this source, env vars, prerequisites |
+| **`scripts/install.sh`** | One-step install on **macOS / Linux** |
 
 ## Quick start (development)
 
-### Prerequisites
+### Install (macOS / Linux)
+
+```bash
+./scripts/install.sh
+```
+
+On **Windows**, run `.\scripts\install.ps1` in PowerShell.
+
+### Prerequisites (manual install)
 
 - **Node.js 18+** — install via [fnm](https://github.com/Schniz/fnm) (recommended on Windows):
   ```powershell
@@ -72,10 +81,11 @@ This directory is the **project root** for local development. **Application sour
    bun run dev
    ```
 
-5. Check prerequisites (Windows):
+5. Check prerequisites:
 
-   ```powershell
+   ```bash
    bun run check-env
+   # or: python3 scripts/check-dev-environment.py
    ```
 
 > **Note (Windows):** Each new PowerShell session needs PATH setup for fnm/bun:
