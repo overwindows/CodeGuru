@@ -81,7 +81,27 @@
       "Bash(python3 -c \"from CodeGuruAPI.config import permission_mode; print\\(permission_mode\\(\\)\\)\")",
       "Bash(lsof -ti:8080)",
       "Bash(timeout 5 /private/tmp/bun-node-0d9b296af/bun run /Users/chenwu/CodeGuru/src/entrypoints/cli.tsx -p \"say hello\" --permission-mode review --output-format stream-json)",
-      "Bash(/private/tmp/bun-node-0d9b296af/bun run:*)"
+      "Bash(/private/tmp/bun-node-0d9b296af/bun run:*)",
+      "Bash(grep -ri Tip.*memory /import/ml-sc-scratch1/chenw/CodeGuru/src/)",
+      "Bash(curl -s https://api.github.com/repos/sambanova/sambanova-marketplace)",
+      "Bash(gh api:*)",
+      "Read(//import/ml-sc-scratch1/chenw/sambanova-marketplace/**)",
+      "Read(//import/ml-sc-scratch1/chenw/sambanova-marketplace/plugins/**)",
+      "Read(//import/ml-sc-scratch1/chenw/sambanova-marketplace/plugins/sambanova-code-mcp/**)",
+      "Read(//import/ml-sc-scratch1/chenw/sambanova-marketplace/plugins/sambanova-code-mcp/.claude-plugin/**)",
+      "Bash(npm list:*)",
+      "Read(//import/ml-sc-scratch1/chenw/sambanova-marketplace/plugins/sambanova-plugin-cc/.claude-plugin/**)",
+      "Bash(grep -r .codeguru-plugin /import/ml-sc-scratch1/chenw/CodeGuru/src --include=*.ts --include=*.tsx -l)",
+      "Bash(grep -rn .codeguru-plugin /import/ml-sc-scratch1/chenw/CodeGuru/src --include=*.ts --include=*.tsx)",
+      "Bash(grep -r 'Will retry on next startup' /import/ml-sc-scratch1/chenw/CodeGuru/src --include=*.ts)",
+      "Bash(grep -r 'Failed to install' /import/ml-sc-scratch1/chenw/CodeGuru/src --include=*.ts)",
+      "Bash(grep -ri \"marketplace.*retry\\\\|retry.*marketplace\" /import/ml-sc-scratch1/chenw/CodeGuru/src --include=*.ts)",
+      "Bash(grep -ri SambaNova /import/ml-sc-scratch1/chenw/CodeGuru/src --include=*.ts)",
+      "Bash(grep -ri \"unknown\\\\|retry\\\\|marketplace\" /import/ml-sc-scratch1/chenw/CodeGuru/src/ui --include=*.ts --include=*.tsx)",
+      "Bash(grep -rn retry /import/ml-sc-scratch1/chenw/CodeGuru/src/ui --include=*.ts --include=*.tsx)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" --max-time 10 https://github.com/overwindows/browser-use)",
+      "WebFetch(domain:github.com)",
+      "Bash(gh repo:*)"
     ]
   }
 }
