@@ -1,93 +1,108 @@
-## Project Structure
-```
-CodeGuru/  
-│  
-├── docs/  
-│   ├── design_document.docx  
-│   └── markdown/  
-│       └── design_document.md  
-│  
-├── images/  
-│   ├── extracted/  
-│   │   ├── image1.png  
-│   │   ├── image2.png  
-│   │   └── ...  
-│   └── descriptions/  
-│       ├── image1.txt  
-│       ├── image2.txt  
-│       └── ...  
-│  
-├── src/  
-│   ├── __init__.py  
-│   ├── main.py  
-│   ├── word_to_markdown.py  
-│   ├── image_extraction.py  
-│   ├── image_to_text.py  
-|   ├── layout_generation.py
-│   └── code_generation.py  
-│  
-├── output/  
-│   └── generated_code/  
-│       ├── file1.py  
-│       ├── file2.py  
-│       └── ...  
-│  
-└── requirements.txt  
-```
-- docs/: This directory contains the design document in Word format and the converted Markdown file.
-- images/: This directory contains the extracted images from the design document and their corresponding text descriptions.
-- src/: This directory contains the source code for the project, including modules for converting the Word file to Markdown, extracting images, converting images to text, and generating code based on the extracted information.
-- output/: This directory contains the generated code files based on the design document.
-requirements.txt: This file lists the required Python packages for the project.
+# Claude Code (dev tree)
 
-## Installation
-1. Clone the repository.
-2. Install the required Python packages using the following command:
-```
-pip3 install -r requirements.txt
+This directory is the **project root** for local development. **Application source** lives in **`src/`** (upstream-style layout).
+
+| Location | Purpose |
+|----------|---------|
+| **`package.json`**, **`bunfig.toml`**, **`tsconfig.json`** | Install and editor/tooling from **this** folder |
+| **`src/`** | TypeScript source (CLI, REPL, services, tools) — see [`src/README.md`](./src/README.md) |
+| **[`SETUP.md`](./SETUP.md)** | Run the official app vs develop this source, env vars, prerequisites |
+| **`scripts/install.sh`** | One-step install on **macOS / Linux** |
+
+## Quick start (development)
+
+### Install (macOS / Linux)
+
+```bash
+./scripts/install.sh
 ```
 
-## Usage
-1. Place the design document in the root directory of the project.
-2. Run the following command:
-```
-python3 -m src.main --doc <design_doc>
-```
-where `<design_doc>` is a desgin document in Word format.
+On **Windows**, run `.\scripts\install.ps1` in PowerShell.
 
-## Command Line Usage
+### Prerequisites (manual install)
 
-### Code Review Generation
-```
-python3 -m codeguru --task code_review 
-```
+- **Node.js 18+** — install via [fnm](https://github.com/Schniz/fnm) (recommended on Windows):
+  ```powershell
+  winget install Schniz.fnm
+  fnm install 22
+  fnm env --use-on-cd --shell powershell | Out-String | Invoke-Expression
+  ```
+- **Bun** — install via winget or npm:
+  ```powershell
+  winget install Oven-sh.Bun
+  # or: npm install -g bun
+  ```
 
-### Commit Message Generation
-```
-python3 -m codeguru --task commit_message
-```
+### Install & run
 
-### Code Document Generation
-```
-python3 -m codeguru --task function_description
-```
+1. From **this** directory (`Claude Code/`, not only `src/`), install dependencies with **npm** (recommended on Windows/OneDrive — Bun's isolated linker can break with synced folders):
 
-### Performance Optimization 
-```
-python3 -m codeguru --task perf_optimization
-```
+   ```bash
+   npm install --legacy-peer-deps
+   ```
 
-### Bug Defect and Fixing 
-```
-python3 -m codeguru --task bug_fix
-```
+2. Fix React version compatibility (the source uses React 19 APIs):
 
-### Test Cases generation
-```
-python3 -m codeguru --task test_generation
-```
+   ```bash
+   npm install react@^19.0.0 react-reconciler@0.34.0-canary-ed69815c-20260323 --legacy-peer-deps
+   ```
 
-### Code Translation
-```
-python3 -m codeguru --task code_translation
-```
+3. Configure your model provider via `%USERPROFILE%\.codeguru\settings.json`:
+
+   **SambaNova (OpenAI-compatible) example — `C:\Users\<you>\.codeguru\settings.json`:**
+
+   ```json
+   {
+     "env": {
+       "CODEGURU_BASE_URL": "https://api.sambanova.ai/v1",
+       "CODEGURU_AUTH_TOKEN": "<your-sambanova-api-key>",
+       "CODEGURU_MODEL": "MiniMax-M2.7",
+       "CODEGURU_DEFAULT_HAIKU_MODEL": "MiniMax-M2.7",
+       "CODEGURU_CODE_AUTO_COMPACT_WINDOW": "200000",
+       "CODEGURU_AUTOCOMPACT_PCT_OVERRIDE": "60"
+     },
+     "theme": "auto"
+   }
+   ```
+
+   All `CODEGURU_*` keys are bridged to their `ANTHROPIC_*` / `CLAUDE_*` equivalents at runtime — you never need to set `ANTHROPIC_*` variables directly.  Any OpenAI-compatible provider works: just point `CODEGURU_BASE_URL` at the provider's `/v1` endpoint, set `CODEGURU_AUTH_TOKEN` to your key, and set `CODEGURU_MODEL` to the model name.
+
+   > **Note:** include `/v1` in `CODEGURU_BASE_URL` — CodeGuru strips it before handing the URL to the SDK, which adds its own `/v1/…` paths. The setting value matches what your provider documents (e.g. `https://api.sambanova.ai/v1`).
+
+   **Optional: Anthropic API key instead:**
+
+   ```powershell
+   $env:ANTHROPIC_API_KEY = "sk-ant-..."
+   ```
+
+4. Run the dev entrypoint:
+
+   ```bash
+   bun run dev
+   ```
+
+5. Check prerequisites:
+
+   ```bash
+   bun run check-env
+   # or: python3 scripts/check-dev-environment.py
+   ```
+
+> **Note (Windows):** Each new PowerShell session needs PATH setup for fnm/bun:
+> ```powershell
+> $env:Path = [System.Environment]::GetEnvironmentVariable("Path","User") + ";" + [System.Environment]::GetEnvironmentVariable("Path","Machine")
+> fnm env --use-on-cd --shell powershell | Out-String | Invoke-Expression
+> ```
+
+## Internal / private packages
+
+Some files import packages that are **not** on the public npm registry, for example:
+
+- `@ant/*` (computer use, Chrome MCP, …)
+- `@anthropic-ai/claude-agent-sdk`, `@anthropic-ai/sandbox-runtime`, `@anthropic-ai/mcpb`, …
+
+Those paths are gated or stripped in **shipping** builds. A raw `src/` checkout plus this `package.json` is enough to explore and typecheck **much** of the code, but **not** guaranteed to match Anthropic’s full production bundle. For a **supported** install, use the [official Claude Code setup](https://code.claude.com/docs/en/setup).
+
+## Run the product (no build)
+
+To **use** Claude Code without compiling this repo, install via the official installer or `winget` — see **SETUP.md §A**.
