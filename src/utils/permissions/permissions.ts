@@ -1,4 +1,5 @@
 import { feature } from 'bun:bundle'
+import { PERMISSION_REQUESTOR } from '../../constants/system.js'
 import { APIUserAbortError } from '@anthropic-ai/sdk'
 import type { CanUseToolFn } from '../../hooks/useCanUseTool.js'
 import {
@@ -205,7 +206,7 @@ export function createPermissionRequestMessage(
   }
 
   // Default message without listing allowed commands
-  const message = `Claude requested permissions to use ${toolName}, but you haven't granted it yet.`
+  const message = `${PERMISSION_REQUESTOR} requested permissions to use ${toolName}, but you haven't granted it yet.`
 
   return message
 }
