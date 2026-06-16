@@ -356,11 +356,15 @@
           const active = item.id === sessionId ? " active" : "";
           const disabled = isStreaming ? " disabled" : "";
           return (
+            `<div class="chat-history-item-wrapper${active}">` +
             `<button type="button" class="chat-history-item${active}"` +
             ` data-session-id="${escapeHtml(item.id)}"${disabled}>` +
             `<span class="chat-history-item-title">${escapeHtml(item.title || "Chat")}</span>` +
             `<span class="chat-history-item-meta">${escapeHtml(formatChatTime(item.updated_at))}</span>` +
-            `</button>`
+            `</button>` +
+            `<button type="button" class="chat-history-delete" title="Delete chat"` +
+            ` data-session-id="${escapeHtml(item.id)}">×</button>` +
+            `</div>`
           );
         })
         .join("");
@@ -368,6 +372,32 @@
         button.addEventListener("click", () => {
           void switchToChat(button.dataset.sessionId);
         });
+      }
+      for (const button of chatHistoryList.querySelectorAll(".chat-history-delete")) {
+        button.addEventListener("click", (e) => {
+          e.stopPropagation();
+          void deleteChat(button.dataset.sessionId);
+        });
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  async function deleteChat(id) {
+    if (!confirm("Delete this chat?")) {
+      return;
+    }
+    try {
+      const response = await fetch(`/api/chat/session/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        if (sessionId === id) {
+          setSessionId(null);
+          clearMessages();
+        }
+        await loadChatList();
       }
     } catch {
       // ignore
