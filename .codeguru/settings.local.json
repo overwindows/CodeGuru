@@ -59,7 +59,10 @@
       "Bash(pip install:*)",
       "Bash(export CODEGURU_REPO_ROOT=\"/Users/chenwu/CodeGuru\")",
       "Bash(export CODEGURU_CWD=\"$CODEGURU_REPO_ROOT\")",
-      "Bash(python app.py)"
+      "Bash(python app.py)",
+      "Bash(xargs kill:*)",
+      "WebSearch",
+      "Bash(npm install:*)"
     ]
   }
 }

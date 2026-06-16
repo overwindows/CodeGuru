@@ -9,7 +9,7 @@ from pathlib import Path
 from flask import Flask, Response, jsonify, render_template, request, stream_with_context
 from werkzeug.exceptions import BadRequest, NotFound
 
-from agent_runner import AgentRunnerError, cli_available, run_agent_stream
+from agent_runner import AgentRunnerError, cli_available, run_agent_stream, stop_agent_stream
 from chat_sessions import (
     append_message,
     get_display_messages,
@@ -187,6 +187,18 @@ def chat_new_session():
 
     session = create_session()
     return jsonify({"session_id": session["id"]})
+
+
+@app.route("/api/chat/stop", methods=["POST"])
+def chat_stop():
+    body = request.get_json(silent=True) or {}
+    cli_session_id = body.get("cli_session_id") or None
+
+    if not cli_session_id:
+        raise BadRequest("cli_session_id is required")
+
+    stopped = stop_agent_stream(cli_session_id)
+    return jsonify({"stopped": stopped})
 
 
 @app.route("/api/chat/stream", methods=["POST"])

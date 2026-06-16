@@ -331,6 +331,25 @@ def _spawn_agent_process(
     return cmd, workdir, proc
 
 
+# Global registry of active subprocesses, keyed by cli_session_id
+_active_processes: dict[str, subprocess.Popen[str]] = {}
+
+
+def stop_agent_stream(cli_session_id: str) -> bool:
+    """Terminate the running agent subprocess for the given CLI session ID."""
+    proc = _active_processes.pop(cli_session_id, None)
+    if proc is None:
+        return False
+    proc.terminate()
+    # Give it a moment to clean up, then kill if still alive
+    try:
+        proc.wait(timeout=2)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait()
+    return True
+
+
 def run_agent_stream(
     prompt: str,
     *,
@@ -346,6 +365,10 @@ def run_agent_stream(
             session_id=resume_session_id,
             cwd=cwd,
         )
+
+        # Register the process for possible early termination
+        if resume_session_id:
+            _active_processes[resume_session_id] = proc
 
         if not attempted_resume or resume_session_id is None:
             yield (
@@ -374,6 +397,10 @@ def run_agent_stream(
                 and payload.get("subtype") == "error_during_execution"
             ):
                 resume_error = True
+
+        # Clean up registry entry when process finishes
+        if resume_session_id:
+            _active_processes.pop(resume_session_id, None)
 
         proc.wait()
         if proc.stderr is not None:

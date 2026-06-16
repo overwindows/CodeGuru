@@ -694,6 +694,30 @@ button.primary:disabled {
   cursor: not-allowed;
 }
 
+button.danger {
+  border: none;
+  border-radius: var(--radius);
+  background: var(--error);
+  color: white;
+  font: inherit;
+  font-weight: 600;
+  padding: 0.85rem 1.2rem;
+  cursor: pointer;
+}
+
+button.danger:hover:not(:disabled) {
+  background: var(--error-hover, #c53030);
+}
+
+button.danger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.hidden {
+  display: none !important;
+}
+
 .hint {
   margin-top: 0.55rem;
   font-size: 0.78rem;
