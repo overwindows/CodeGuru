@@ -33,14 +33,16 @@ The scripts will:
 **macOS**
 
 ```bash
-# Node.js (fnm recommended)
-brew install fnm
-fnm install 22
+# Node.js via fnm (do not use brew install fnm on older macOS — it pulls heavy deps)
+curl -fsSL https://fnm.vercel.app/install | bash
 eval "$(fnm env --use-on-cd)"
+fnm install 22
 
 # Bun
 curl -fsSL https://bun.sh/install | bash
 ```
+
+On **macOS 12 and older**, prefer the fnm/Bun curl installers over Homebrew for Node tooling. If installs still fail, use the [Node.js LTS installer](https://nodejs.org/).
 
 **Linux**
 

@@ -51,7 +51,15 @@
       "Bash(mv citations.csv Photos/)",
       "Bash(rm -f \"/c/Users/wuc/Pictures/iCloud Photos/desktop.ini\")",
       "Bash(rmdir \"/c/Users/wuc/Pictures/iCloud Photos\")",
-      "Bash(mv \"Fig Player\" Screenshots)"
+      "Bash(mv \"Fig Player\" Screenshots)",
+      "WebFetch(domain:ladys.one)",
+      "Bash(open:*)",
+      "Bash(python3 -m venv .venv)",
+      "Bash(source .venv/bin/activate)",
+      "Bash(pip install:*)",
+      "Bash(export CODEGURU_REPO_ROOT=\"/Users/chenwu/CodeGuru\")",
+      "Bash(export CODEGURU_CWD=\"$CODEGURU_REPO_ROOT\")",
+      "Bash(python app.py)"
     ]
   }
 }
