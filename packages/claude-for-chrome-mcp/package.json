@@ -1,0 +1,11 @@
+{
+  "name": "@ant/claude-for-chrome-mcp",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local stub: tool names for Claude in Chrome (see src/utils/claudeInChrome/toolRendering.tsx)",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  }
+}
