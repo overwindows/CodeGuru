@@ -15,6 +15,7 @@ from chat_sessions import (
     get_display_messages,
     get_display_tool_events,
     get_or_create_session,
+    list_sessions,
     load_session,
     sync_messages_from_cli,
 )
@@ -92,6 +93,7 @@ def _agent_event_stream(prompt: str, web_session_id: str):
 
                 set_cli_session_id(session, payload["session_id"])
                 cli_session_id = payload["session_id"]
+                continue
             elif event_type == "delta" and payload.get("text"):
                 assistant_parts.append(payload["text"])
             elif event_type == "message" and payload.get("text"):
@@ -102,10 +104,6 @@ def _agent_event_stream(prompt: str, web_session_id: str):
                 continue
             elif event_type == "error":
                 stream_error = True
-            elif event_type == "session":
-                # CLI session id is tracked server-side only — do not forward
-                # as "session" or the browser overwrites the web session id.
-                continue
             yield _sse(event_type, payload)
 
         sync_messages_from_cli(session, cwd)
@@ -176,6 +174,11 @@ def chat_history():
             "updated_at": session.get("updated_at"),
         }
     )
+
+
+@app.route("/api/chat/sessions")
+def chat_sessions_list():
+    return jsonify({"sessions": list_sessions()})
 
 
 @app.route("/api/chat/session", methods=["POST"])

@@ -12,7 +12,14 @@ from pathlib import Path
 from typing import Any
 
 from cli_env import subprocess_env
-from config import agent_cwd, permission_mode, repo_root, web_append_system_prompt, web_disable_tools
+from config import (
+    agent_cwd,
+    permission_allow_rules,
+    permission_mode,
+    repo_root,
+    web_append_system_prompt,
+    web_disable_tools,
+)
 from tool_display import summarize_tool_input, summarize_tool_result
 
 
@@ -116,6 +123,10 @@ def _build_command(
 
     if web_disable_tools():
         cmd.extend(["--tools", ""])
+
+    allowed = permission_allow_rules()
+    if allowed:
+        cmd.extend(["--allowed-tools", *allowed])
 
     # Follow-up turns: resume the CLI session saved from the prior web turn.
     if session_id:

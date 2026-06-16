@@ -6,6 +6,8 @@
   const input = document.getElementById("prompt-input");
   const sendButton = document.getElementById("send-button");
   const newChatButton = document.getElementById("new-chat-button");
+  const chatHistoryList = document.getElementById("chat-history-list");
+  const chatHistoryEmpty = document.getElementById("chat-history-empty");
   const toolActivityList = document.getElementById("tool-activity-list");
   const toolActivityCount = document.getElementById("tool-activity-count");
   const toolActivityEmpty = document.getElementById("tool-activity-empty");
@@ -26,32 +28,9 @@
     return status || "Running";
   }
 
-  function renderToolCard(tool) {
-    const status = tool.status || "running";
-    const summary = escapeHtml(tool.summary || "");
-    const preview = tool.result_preview
-      ? `<p class="tool-card-result">${escapeHtml(tool.result_preview)}</p>`
-      : "";
-    return (
-      `<div class="tool-card ${escapeHtml(status)}">` +
-      `<div class="tool-card-head">` +
-      `<span class="tool-card-name">${escapeHtml(tool.name || "tool")}</span>` +
-      `<span class="tool-card-status">${statusLabel(status)}</span>` +
-      `</div>` +
-      (summary ? `<p class="tool-card-summary">${summary}</p>` : "") +
-      preview +
-      `</div>`
-    );
-  }
-
   function renderAssistantContent(msg) {
     const text = stripLegacyToolMarkers(msg.content || "");
-    let html = text ? renderMarkdown(text) : "";
-    const tools = msg.tools || [];
-    if (tools.length) {
-      html += `<div class="tool-cards">${tools.map(renderToolCard).join("")}</div>`;
-    }
-    return html || '<span class="hint">(tool activity only)</span>';
+    return text ? renderMarkdown(text) : "";
   }
 
   function upsertToolEvent(event) {
@@ -304,7 +283,13 @@
       const html = isAssistant
         ? renderAssistantContent(msg)
         : escapeHtml(msg.content || "").replace(/\n/g, "<br>");
-      createMessage(role, html, { markdown: isAssistant });
+      if (isAssistant && !html.trim() && (msg.tools || []).length) {
+        continue;
+      }
+      const bubble = createMessage(role, html, { markdown: isAssistant });
+      if (isAssistant && !html.trim()) {
+        bubble.hidden = true;
+      }
     }
   }
 
@@ -315,6 +300,86 @@
     } else {
       localStorage.removeItem(STORAGE_KEY);
     }
+    updateChatHistoryActiveState();
+  }
+
+  function formatChatTime(iso) {
+    if (!iso) {
+      return "";
+    }
+    try {
+      const date = new Date(iso);
+      return date.toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "";
+    }
+  }
+
+  function updateChatHistoryActiveState() {
+    if (!chatHistoryList) {
+      return;
+    }
+    for (const button of chatHistoryList.querySelectorAll(".chat-history-item")) {
+      button.classList.toggle("active", button.dataset.sessionId === sessionId);
+    }
+  }
+
+  async function loadChatList() {
+    if (!chatHistoryList) {
+      return;
+    }
+    try {
+      const response = await fetch("/api/chat/sessions");
+      if (!response.ok) {
+        return;
+      }
+      const data = await response.json();
+      const sessions = data.sessions || [];
+      if (sessions.length === 0) {
+        chatHistoryList.innerHTML = "";
+        if (chatHistoryEmpty) {
+          chatHistoryList.appendChild(chatHistoryEmpty);
+          chatHistoryEmpty.hidden = false;
+        }
+        return;
+      }
+      chatHistoryList.innerHTML = sessions
+        .map((item) => {
+          const active = item.id === sessionId ? " active" : "";
+          const disabled = isStreaming ? " disabled" : "";
+          return (
+            `<button type="button" class="chat-history-item${active}"` +
+            ` data-session-id="${escapeHtml(item.id)}"${disabled}>` +
+            `<span class="chat-history-item-title">${escapeHtml(item.title || "Chat")}</span>` +
+            `<span class="chat-history-item-meta">${escapeHtml(formatChatTime(item.updated_at))}</span>` +
+            `</button>`
+          );
+        })
+        .join("");
+      for (const button of chatHistoryList.querySelectorAll(".chat-history-item")) {
+        button.addEventListener("click", () => {
+          void switchToChat(button.dataset.sessionId);
+        });
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  async function switchToChat(id) {
+    if (!id || isStreaming || id === sessionId) {
+      return;
+    }
+    setSessionId(id);
+    clearToolActivity();
+    await loadHistory();
+    await loadChatList();
+    input.focus();
   }
 
   function setStreaming(active) {
@@ -323,6 +388,11 @@
     input.disabled = active;
     if (newChatButton) {
       newChatButton.disabled = active;
+    }
+    if (chatHistoryList) {
+      for (const button of chatHistoryList.querySelectorAll(".chat-history-item")) {
+        button.disabled = active;
+      }
     }
   }
 
@@ -365,6 +435,8 @@
       return data;
     } catch {
       // ignore — start fresh
+    } finally {
+      updateChatHistoryActiveState();
     }
   }
 
@@ -378,6 +450,7 @@
       setSessionId(data.session_id);
       clearMessages();
       clearToolActivity();
+      await loadChatList();
     } catch {
       setSessionId(null);
       clearMessages();
@@ -425,6 +498,7 @@
     }
 
     let renderPending = false;
+    let reloadAfterStream = false;
 
     function scheduleRenderAssistantBubble() {
       if (renderPending) {
@@ -439,11 +513,12 @@
 
     function renderAssistantBubble() {
       assistantBubble.classList.add("md");
-      const msg = {
-        content: assistantText,
-        tools: streamTools,
-      };
-      assistantBubble.innerHTML = renderAssistantContent(msg);
+      assistantBubble.innerHTML = renderAssistantContent({ content: assistantText });
+      if (!assistantBubble.innerHTML.trim()) {
+        assistantBubble.hidden = true;
+      } else {
+        assistantBubble.hidden = false;
+      }
     }
 
     try {
@@ -520,19 +595,15 @@
           } else if (eventName === "status" && payload.status) {
             assistantBubble.innerHTML =
               `<span class="hint">${escapeHtml(payload.status)}</span>` +
-              (assistantText || streamTools.length
-                ? renderAssistantContent({
-                    content: assistantText,
-                    tools: streamTools,
-                  })
+              (assistantText
+                ? renderAssistantContent({ content: assistantText })
                 : "");
+            assistantBubble.hidden = !assistantBubble.innerHTML.trim();
           } else if (eventName === "started") {
             assistantBubble.innerHTML =
               '<span class="hint">Agent running…</span>';
           } else if (eventName === "error") {
-            if (!assistantText.trim()) {
-              assistantBubble.innerHTML = `<span class="error-text">${escapeHtml(payload.message || "Unknown error")}</span>`;
-            }
+            assistantBubble.innerHTML = `<span class="error-text">${escapeHtml(payload.message || "Unknown error")}</span>`;
           } else if (eventName === "done") {
             if (payload.session_id) {
               setSessionId(payload.session_id);
@@ -542,7 +613,7 @@
               assistantBubble.innerHTML = `<span class="error-text">${escapeHtml(payload.subtype || "Request failed")}</span>`;
             }
             if (payload.mode === "agent" && !payload.is_error && sessionId) {
-              void loadHistory();
+              reloadAfterStream = true;
             }
           }
         }
@@ -552,14 +623,26 @@
 
       renderAssistantBubble();
 
-      if (!assistantText.trim() && !streamTools.length) {
-        assistantBubble.innerHTML =
-          '<span class="error-text">No response from the agent. Try again or start a new chat.</span>';
+      if (!assistantText.trim() && streamTools.length) {
+        const wrapper = assistantBubble.closest(".message");
+        if (wrapper) {
+          wrapper.remove();
+        }
+      } else if (!assistantText.trim() && !streamTools.length) {
+        const errEl = assistantBubble.querySelector(".error-text");
+        if (!errEl) {
+          assistantBubble.innerHTML =
+            '<span class="error-text">No response from the agent. Try again or start a new chat.</span>';
+        }
       }
     } catch (error) {
       assistantBubble.innerHTML = `<span class="error-text">${escapeHtml(error.message || String(error))}</span>`;
     } finally {
       setStreaming(false);
+      if (reloadAfterStream) {
+        void loadHistory();
+        void loadChatList();
+      }
       input.focus();
     }
   }
@@ -582,5 +665,6 @@
     });
   }
 
+  void loadChatList();
   void loadHistory();
 })();

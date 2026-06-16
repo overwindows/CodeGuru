@@ -63,6 +63,28 @@ def permission_mode() -> str:
     return "acceptEdits"
 
 
+def permission_allow_rules() -> list[str]:
+    """Tool allow rules from settings.json and CODEGURU_ALLOWED_TOOLS."""
+    rules: list[str] = []
+    env_rules = os.environ.get("CODEGURU_ALLOWED_TOOLS")
+    if env_rules:
+        rules.extend(r.strip() for r in env_rules.replace(",", " ").split() if r.strip())
+    settings = load_settings()
+    perms = settings.get("permissions")
+    if isinstance(perms, dict):
+        for rule in perms.get("allow") or []:
+            if rule:
+                rules.append(str(rule))
+    # Preserve order, drop duplicates.
+    seen: set[str] = set()
+    out: list[str] = []
+    for rule in rules:
+        if rule not in seen:
+            seen.add(rule)
+            out.append(rule)
+    return out
+
+
 def web_append_system_prompt() -> str | None:
     """Optional extra system prompt — unset means use the CLI default prompts only."""
     value = os.environ.get("CODEGURU_WEB_SYSTEM_PROMPT")

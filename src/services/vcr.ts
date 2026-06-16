@@ -32,6 +32,43 @@ function shouldUseVCR(): boolean {
   return false
 }
 
+function vcrFixtureBasename(dehydratedInput: unknown[]): string {
+  return createHash('sha1')
+    .update(jsonStringify(dehydratedInput))
+    .digest('hex')
+    .slice(0, 12)
+}
+
+/** Legacy per-message chain; kept for fixture lookup only (grows unbounded). */
+function legacyVcrFixtureBasename(dehydratedInput: unknown[]): string | null {
+  const legacy = dehydratedInput
+    .map(_ =>
+      createHash('sha1').update(jsonStringify(_)).digest('hex').slice(0, 6),
+    )
+    .join('-')
+  // macOS filename limit is 255 bytes; long multi-turn chats exceeded it (ENAMETOOLONG).
+  if (legacy.length > 200) {
+    return null
+  }
+  return legacy
+}
+
+function vcrFixtureCandidates(dehydratedInput: unknown[]): string[] {
+  const basenames = [vcrFixtureBasename(dehydratedInput)]
+  const legacy = legacyVcrFixtureBasename(dehydratedInput)
+  if (legacy && legacy !== basenames[0]) {
+    basenames.push(legacy)
+  }
+  return basenames
+}
+
+function vcrFixturePath(basename: string): string {
+  return join(
+    process.env.CLAUDE_CODE_TEST_FIXTURES_ROOT ?? getCwd(),
+    `fixtures/${basename}.json`,
+  )
+}
+
 /**
  * Generic fixture management helper
  * Handles caching, reading, writing fixtures for any data type
@@ -109,30 +146,34 @@ export async function withVCR(
     messagesForAPI.map(_ => _.message.content),
     dehydrateValue,
   )
-  const filename = join(
-    process.env.CLAUDE_CODE_TEST_FIXTURES_ROOT ?? getCwd(),
-    `fixtures/${dehydratedInput.map(_ => createHash('sha1').update(jsonStringify(_)).digest('hex').slice(0, 6)).join('-')}.json`,
-  )
+  const fixtureCandidates = vcrFixtureCandidates(dehydratedInput)
+  const writeFixturePath = vcrFixturePath(fixtureCandidates[0]!)
 
-  // Fetch cached fixture
-  try {
-    const cached = jsonParse(
-      await readFile(filename, { encoding: 'utf8' }),
-    ) as { output: (AssistantMessage | StreamEvent)[] }
-    cached.output.forEach(addCachedCostToTotalSessionCost)
-    return cached.output.map((message, index) =>
-      mapMessage(message, hydrateValue, index, randomUUID()),
-    )
-  } catch (e: unknown) {
-    const code = getErrnoCode(e)
-    if (code !== 'ENOENT') {
-      throw e
+  // Fetch cached fixture (short hash first, then legacy chain when present)
+  for (const basename of fixtureCandidates) {
+    const filename = vcrFixturePath(basename)
+    try {
+      const cached = jsonParse(
+        await readFile(filename, { encoding: 'utf8' }),
+      ) as { output: (AssistantMessage | StreamEvent)[] }
+      cached.output.forEach(addCachedCostToTotalSessionCost)
+      return cached.output.map((message, index) =>
+        mapMessage(message, hydrateValue, index, randomUUID()),
+      )
+    } catch (e: unknown) {
+      const code = getErrnoCode(e)
+      if (code === 'ENAMETOOLONG') {
+        continue
+      }
+      if (code !== 'ENOENT') {
+        throw e
+      }
     }
   }
 
   if (env.isCI && !isEnvTruthy(process.env.VCR_RECORD)) {
     throw new Error(
-      `Anthropic API fixture missing: ${filename}. Re-run tests with VCR_RECORD=1, then commit the result. Input messages:\n${jsonStringify(dehydratedInput, null, 2)}`,
+      `Anthropic API fixture missing: ${writeFixturePath}. Re-run tests with VCR_RECORD=1, then commit the result. Input messages:\n${jsonStringify(dehydratedInput, null, 2)}`,
     )
   }
 
@@ -142,9 +183,9 @@ export async function withVCR(
     return results
   }
 
-  await mkdir(dirname(filename), { recursive: true })
+  await mkdir(dirname(writeFixturePath), { recursive: true })
   await writeFile(
-    filename,
+    writeFixturePath,
     jsonStringify(
       {
         input: dehydratedInput,
