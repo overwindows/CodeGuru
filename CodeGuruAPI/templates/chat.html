@@ -46,6 +46,21 @@
         </div>
       </div>
 
+      <section class="tool-activity-panel" aria-label="Tool activity">
+        <div class="tool-activity-header">
+          <h2>Tool activity</h2>
+          <span class="tool-activity-count" id="tool-activity-count">0</span>
+        </div>
+        <p class="tool-activity-hint">
+          Live log of agent tools — Bash, Grep, Glob, Read, and more.
+        </p>
+        <div class="tool-activity-list" id="tool-activity-list">
+          <div class="tool-activity-empty" id="tool-activity-empty">
+            No tools run yet this session.
+          </div>
+        </div>
+      </section>
+
       <nav class="nav-links">
         <a class="active" href="{{ url_for('chat_page') }}">Chat</a>
         <a href="{{ url_for('legacy_page') }}">Quick tasks</a>

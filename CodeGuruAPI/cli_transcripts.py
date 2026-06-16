@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from config import agent_cwd
+from tool_display import summarize_tool_input, summarize_tool_result
 
 _MAX_SANITIZED_LENGTH = 200
 
@@ -43,7 +44,7 @@ def transcript_path(session_id: str, cwd: str | Path | None = None) -> Path | No
     return None
 
 
-def _extract_text(content: Any) -> str:
+def _extract_text_only(content: Any) -> str:
     if isinstance(content, str):
         return content
     if not isinstance(content, list):
@@ -52,30 +53,25 @@ def _extract_text(content: Any) -> str:
     for block in content:
         if not isinstance(block, dict):
             continue
-        block_type = block.get("type")
-        if block_type == "text":
+        if block.get("type") == "text":
             parts.append(block.get("text") or "")
-        elif block_type == "tool_use":
-            name = block.get("name") or "tool"
-            parts.append(f"\n\n**[{name}]**\n")
     return "".join(parts)
 
 
-def load_cli_messages(
-    session_id: str,
-    cwd: str | Path | None = None,
-) -> list[dict[str, Any]]:
-    path = transcript_path(session_id, cwd)
-    if not path:
-        return []
-
+def _parse_transcript_lines(
+    lines: list[str],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Build display messages and flat tool_events from jsonl lines."""
     messages: list[dict[str, Any]] = []
-    for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line:
+    tool_events: list[dict[str, Any]] = []
+    pending: dict[str, dict[str, Any]] = {}
+
+    for raw in lines:
+        raw = raw.strip()
+        if not raw:
             continue
         try:
-            entry = json.loads(line)
+            entry = json.loads(raw)
         except json.JSONDecodeError:
             continue
 
@@ -83,19 +79,112 @@ def load_cli_messages(
             continue
 
         entry_type = entry.get("type")
-        if entry_type not in ("user", "assistant"):
-            continue
-
         body = entry.get("message") or {}
-        text = _extract_text(body.get("content"))
-        if not text.strip():
+        content = body.get("content")
+        timestamp = entry.get("timestamp")
+
+        if entry_type == "assistant" and isinstance(content, list):
+            text = _extract_text_only(content).strip()
+            turn_tools: list[dict[str, Any]] = []
+
+            for block in content:
+                if not isinstance(block, dict) or block.get("type") != "tool_use":
+                    continue
+                tool_id = block.get("id") or ""
+                name = block.get("name") or "tool"
+                summary = summarize_tool_input(name, block.get("input"))
+                event = {
+                    "id": tool_id,
+                    "name": name,
+                    "summary": summary,
+                    "status": "running",
+                    "result_preview": "",
+                    "timestamp": timestamp,
+                }
+                turn_tools.append(event)
+                tool_events.append(event)
+                if tool_id:
+                    pending[tool_id] = event
+
+            if text or turn_tools:
+                messages.append(
+                    {
+                        "role": "assistant",
+                        "content": text,
+                        "tools": turn_tools,
+                        "timestamp": timestamp,
+                    }
+                )
             continue
 
-        messages.append(
-            {
-                "role": "user" if entry_type == "user" else "assistant",
-                "content": text,
-                "timestamp": entry.get("timestamp"),
-            }
-        )
+        if entry_type == "user" and isinstance(content, list):
+            user_text = _extract_text_only(content).strip()
+            for block in content:
+                if not isinstance(block, dict) or block.get("type") != "tool_result":
+                    continue
+                tool_id = block.get("tool_use_id") or ""
+                event = pending.get(tool_id)
+                status, preview = summarize_tool_result(block.get("content"))
+                if event:
+                    event["status"] = status
+                    event["result_preview"] = preview
+                else:
+                    tool_events.append(
+                        {
+                            "id": tool_id,
+                            "name": "tool",
+                            "summary": "",
+                            "status": status,
+                            "result_preview": preview,
+                            "timestamp": timestamp,
+                        }
+                    )
+
+            if user_text:
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": user_text,
+                        "timestamp": timestamp,
+                    }
+                )
+            continue
+
+        if entry_type == "user" and isinstance(content, str) and content.strip():
+            messages.append(
+                {
+                    "role": "user",
+                    "content": content.strip(),
+                    "timestamp": timestamp,
+                }
+            )
+
+    return messages, tool_events
+
+
+def load_cli_messages(
+    session_id: str,
+    cwd: str | Path | None = None,
+) -> list[dict[str, Any]]:
+    messages, _ = load_cli_conversation(session_id, cwd)
     return messages
+
+
+def load_cli_tool_events(
+    session_id: str,
+    cwd: str | Path | None = None,
+) -> list[dict[str, Any]]:
+    _, tool_events = load_cli_conversation(session_id, cwd)
+    return tool_events
+
+
+def load_cli_conversation(
+    session_id: str,
+    cwd: str | Path | None = None,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    path = transcript_path(session_id, cwd)
+    if not path:
+        return [], []
+
+    lines = path.read_text(encoding="utf-8").splitlines()
+    return _parse_transcript_lines(lines)

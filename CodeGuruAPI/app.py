@@ -13,6 +13,7 @@ from agent_runner import AgentRunnerError, cli_available, run_agent_stream
 from chat_sessions import (
     append_message,
     get_display_messages,
+    get_display_tool_events,
     get_or_create_session,
     load_session,
     sync_messages_from_cli,
@@ -101,6 +102,10 @@ def _agent_event_stream(prompt: str, web_session_id: str):
                 continue
             elif event_type == "error":
                 stream_error = True
+            elif event_type == "session":
+                # CLI session id is tracked server-side only — do not forward
+                # as "session" or the browser overwrites the web session id.
+                continue
             yield _sse(event_type, payload)
 
         sync_messages_from_cli(session, cwd)
@@ -120,6 +125,16 @@ def _agent_event_stream(prompt: str, web_session_id: str):
         )
     except AgentRunnerError as exc:
         yield _sse("error", {"message": str(exc)})
+        yield _sse(
+            "done",
+            {
+                "subtype": "error",
+                "is_error": True,
+                "mode": "agent",
+                "session_id": session["id"],
+                "cli_session_id": cli_session_id,
+            },
+        )
 
 
 @app.route("/")
@@ -148,6 +163,7 @@ def chat_history():
         raise NotFound("session not found")
 
     messages = get_display_messages(session)
+    tool_events = get_display_tool_events(session)
     source = "cli" if session.get("cli_session_id") and messages else "web"
 
     return jsonify(
@@ -155,6 +171,7 @@ def chat_history():
             "session_id": session["id"],
             "cli_session_id": session.get("cli_session_id"),
             "messages": messages,
+            "tool_events": tool_events,
             "source": source,
             "updated_at": session.get("updated_at"),
         }

@@ -13,6 +13,7 @@ from typing import Any
 
 from cli_env import subprocess_env
 from config import agent_cwd, permission_mode, repo_root, web_append_system_prompt, web_disable_tools
+from tool_display import summarize_tool_input, summarize_tool_result
 
 
 class AgentRunnerError(Exception):
@@ -129,13 +130,49 @@ def _extract_assistant_text(message: dict[str, Any]) -> str:
     for block in content:
         if not isinstance(block, dict):
             continue
-        block_type = block.get("type")
-        if block_type == "text":
+        if block.get("type") == "text":
             parts.append(block.get("text") or "")
-        elif block_type == "tool_use":
-            name = block.get("name") or "tool"
-            parts.append(f"\n\n**[{name}]**\n")
     return "".join(parts)
+
+
+def _extract_assistant_tools(
+    message: dict[str, Any],
+) -> Iterator[tuple[str, dict[str, Any]]]:
+    content = message.get("message", {}).get("content") or []
+    for block in content:
+        if not isinstance(block, dict) or block.get("type") != "tool_use":
+            continue
+        name = block.get("name") or "tool"
+        tool_id = block.get("id") or ""
+        summary = summarize_tool_input(name, block.get("input"))
+        yield (
+            "tool_use",
+            {
+                "id": tool_id,
+                "name": name,
+                "summary": summary,
+                "status": "running",
+            },
+        )
+
+
+def _extract_user_tool_results(
+    message: dict[str, Any],
+) -> Iterator[tuple[str, dict[str, Any]]]:
+    content = message.get("message", {}).get("content") or []
+    for block in content:
+        if not isinstance(block, dict) or block.get("type") != "tool_result":
+            continue
+        tool_id = block.get("tool_use_id") or ""
+        status, preview = summarize_tool_result(block.get("content"))
+        yield (
+            "tool_result",
+            {
+                "id": tool_id,
+                "status": status,
+                "result_preview": preview,
+            },
+        )
 
 
 def _parse_stream_event(obj: dict[str, Any]) -> Iterator[tuple[str, dict[str, Any]]]:
@@ -154,9 +191,14 @@ def _parse_stream_event(obj: dict[str, Any]) -> Iterator[tuple[str, dict[str, An
     elif event_type == "content_block_start":
         block = event.get("content_block") or {}
         if block.get("type") == "tool_use":
+            name = block.get("name") or "tool"
             yield (
                 "tool_start",
-                {"name": block.get("name"), "id": block.get("id")},
+                {
+                    "name": name,
+                    "id": block.get("id"),
+                    "summary": summarize_tool_input(name, block.get("input")),
+                },
             )
 
 
@@ -186,16 +228,17 @@ def _parse_line(line: str) -> Iterator[tuple[str, dict[str, Any]]]:
 
     if msg_type == "stream_event":
         yield from _parse_stream_event(obj)
-        if obj.get("session_id"):
-            yield ("session", {"session_id": obj.get("session_id")})
         return
 
     if msg_type == "assistant":
+        yield from _extract_assistant_tools(obj)
         text = _extract_assistant_text(obj)
         if text:
             yield ("message", {"text": text})
-        if obj.get("session_id"):
-            yield ("session", {"session_id": obj.get("session_id")})
+        return
+
+    if msg_type == "user":
+        yield from _extract_user_tool_results(obj)
         return
 
     if msg_type == "streamlined_text":

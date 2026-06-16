@@ -101,10 +101,23 @@ def get_display_messages(session: dict[str, Any]) -> list[dict[str, Any]]:
     """History for the UI — prefer CLI transcript when linked."""
     cli_session_id = session.get("cli_session_id")
     if cli_session_id:
-        from cli_transcripts import load_cli_messages
+        from cli_transcripts import load_cli_conversation
         from config import agent_cwd
 
-        cli_messages = load_cli_messages(cli_session_id, str(agent_cwd()))
+        cli_messages, _ = load_cli_conversation(cli_session_id, str(agent_cwd()))
         if cli_messages:
             return cli_messages
     return session.get("messages", [])
+
+
+def get_display_tool_events(session: dict[str, Any]) -> list[dict[str, Any]]:
+    """Tool activity log for the UI — from CLI transcript when linked."""
+    cli_session_id = session.get("cli_session_id")
+    if cli_session_id:
+        from cli_transcripts import load_cli_tool_events
+        from config import agent_cwd
+
+        events = load_cli_tool_events(cli_session_id, str(agent_cwd()))
+        if events:
+            return events
+    return session.get("tool_events", [])

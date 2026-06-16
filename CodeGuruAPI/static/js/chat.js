@@ -6,9 +6,142 @@
   const input = document.getElementById("prompt-input");
   const sendButton = document.getElementById("send-button");
   const newChatButton = document.getElementById("new-chat-button");
+  const toolActivityList = document.getElementById("tool-activity-list");
+  const toolActivityCount = document.getElementById("tool-activity-count");
+  const toolActivityEmpty = document.getElementById("tool-activity-empty");
 
   let sessionId = localStorage.getItem(STORAGE_KEY);
   let isStreaming = false;
+  const toolRegistry = new Map();
+
+  function stripLegacyToolMarkers(text) {
+    return (text || "").replace(/\n*\*\*\[[^\]]+\]\*\*\n*/g, "\n").trim();
+  }
+
+  function statusLabel(status) {
+    if (status === "running") return "Running";
+    if (status === "ok") return "Done";
+    if (status === "denied") return "Denied";
+    if (status === "error") return "Error";
+    return status || "Running";
+  }
+
+  function renderToolCard(tool) {
+    const status = tool.status || "running";
+    const summary = escapeHtml(tool.summary || "");
+    const preview = tool.result_preview
+      ? `<p class="tool-card-result">${escapeHtml(tool.result_preview)}</p>`
+      : "";
+    return (
+      `<div class="tool-card ${escapeHtml(status)}">` +
+      `<div class="tool-card-head">` +
+      `<span class="tool-card-name">${escapeHtml(tool.name || "tool")}</span>` +
+      `<span class="tool-card-status">${statusLabel(status)}</span>` +
+      `</div>` +
+      (summary ? `<p class="tool-card-summary">${summary}</p>` : "") +
+      preview +
+      `</div>`
+    );
+  }
+
+  function renderAssistantContent(msg) {
+    const text = stripLegacyToolMarkers(msg.content || "");
+    let html = text ? renderMarkdown(text) : "";
+    const tools = msg.tools || [];
+    if (tools.length) {
+      html += `<div class="tool-cards">${tools.map(renderToolCard).join("")}</div>`;
+    }
+    return html || '<span class="hint">(tool activity only)</span>';
+  }
+
+  function upsertToolEvent(event) {
+    const id = event.id || `${event.name || "tool"}-${toolRegistry.size}`;
+    const existing = toolRegistry.get(id) || {
+      id,
+      name: event.name || "tool",
+      summary: "",
+      status: "running",
+      result_preview: "",
+    };
+    if (event.name) existing.name = event.name;
+    if (event.summary) existing.summary = event.summary;
+    if (event.status) existing.status = event.status;
+    if (event.result_preview) existing.result_preview = event.result_preview;
+    toolRegistry.set(id, existing);
+    return existing;
+  }
+
+  function renderToolActivityPanel() {
+    const events = Array.from(toolRegistry.values());
+    if (toolActivityCount) {
+      toolActivityCount.textContent = String(events.length);
+    }
+    if (!toolActivityList) {
+      return;
+    }
+    if (events.length === 0) {
+      toolActivityList.innerHTML = "";
+      if (toolActivityEmpty) {
+        toolActivityList.appendChild(toolActivityEmpty);
+        toolActivityEmpty.hidden = false;
+      }
+      return;
+    }
+    if (toolActivityEmpty) {
+      toolActivityEmpty.hidden = true;
+    }
+    toolActivityList.innerHTML = events
+      .map((tool) => {
+        const status = tool.status || "running";
+        const summary = escapeHtml(tool.summary || "");
+        const preview = tool.result_preview
+          ? `<p class="tool-activity-item-result">${escapeHtml(tool.result_preview)}</p>`
+          : "";
+        return (
+          `<div class="tool-activity-item ${escapeHtml(status)}">` +
+          `<div class="tool-activity-item-head">` +
+          `<span class="tool-activity-item-name">${escapeHtml(tool.name || "tool")}</span>` +
+          `<span class="tool-activity-item-status">${statusLabel(status)}</span>` +
+          `</div>` +
+          (summary
+            ? `<p class="tool-activity-item-summary"><code>${summary}</code></p>`
+            : "") +
+          preview +
+          `</div>`
+        );
+      })
+      .join("");
+    toolActivityList.scrollTop = toolActivityList.scrollHeight;
+  }
+
+  function clearToolActivity() {
+    toolRegistry.clear();
+    renderToolActivityPanel();
+  }
+
+  function handleToolStreamEvent(eventName, payload) {
+    if (eventName === "tool_start" || eventName === "tool_use") {
+      upsertToolEvent({
+        id: payload.id,
+        name: payload.name,
+        summary: payload.summary || "",
+        status: payload.status || "running",
+      });
+      renderToolActivityPanel();
+      return;
+    }
+    if (eventName === "tool_result") {
+      const tool = upsertToolEvent({
+        id: payload.id,
+        status: payload.status,
+        result_preview: payload.result_preview,
+      });
+      if (!tool.name && payload.name) {
+        tool.name = payload.name;
+      }
+      renderToolActivityPanel();
+    }
+  }
 
   function escapeHtml(text) {
     return text
@@ -169,7 +302,7 @@
       const role = msg.role === "user" ? "user" : "assistant";
       const isAssistant = role === "assistant";
       const html = isAssistant
-        ? renderMarkdown(msg.content || "")
+        ? renderAssistantContent(msg)
         : escapeHtml(msg.content || "").replace(/\n/g, "<br>");
       createMessage(role, html, { markdown: isAssistant });
     }
@@ -213,6 +346,22 @@
         setSessionId(data.session_id);
       }
       renderHistory(data.messages || []);
+      if (data.tool_events && data.tool_events.length) {
+        clearToolActivity();
+        for (const event of data.tool_events) {
+          upsertToolEvent(event);
+        }
+        renderToolActivityPanel();
+      } else {
+        for (const msg of data.messages || []) {
+          for (const tool of msg.tools || []) {
+            upsertToolEvent(tool);
+          }
+        }
+        if (toolRegistry.size) {
+          renderToolActivityPanel();
+        }
+      }
       return data;
     } catch {
       // ignore — start fresh
@@ -228,6 +377,7 @@
       const data = await response.json();
       setSessionId(data.session_id);
       clearMessages();
+      clearToolActivity();
     } catch {
       setSessionId(null);
       clearMessages();
@@ -249,10 +399,51 @@
       '<span class="hint">Thinking…</span>'
     );
     let assistantText = "";
+    const streamTools = [];
+
+    function upsertStreamTool(payload, eventName) {
+      let tool = streamTools.find((t) => t.id && t.id === payload.id);
+      if (!tool) {
+        tool = {
+          id: payload.id,
+          name: payload.name || "tool",
+          summary: payload.summary || "",
+          status: payload.status || "running",
+          result_preview: payload.result_preview || "",
+        };
+        streamTools.push(tool);
+        return tool;
+      }
+      if (payload.name) tool.name = payload.name;
+      if (payload.summary) tool.summary = payload.summary;
+      if (payload.status) tool.status = payload.status;
+      if (payload.result_preview) tool.result_preview = payload.result_preview;
+      if (eventName === "tool_result" && !payload.status) {
+        tool.status = "ok";
+      }
+      return tool;
+    }
+
+    let renderPending = false;
+
+    function scheduleRenderAssistantBubble() {
+      if (renderPending) {
+        return;
+      }
+      renderPending = true;
+      requestAnimationFrame(() => {
+        renderPending = false;
+        renderAssistantBubble();
+      });
+    }
 
     function renderAssistantBubble() {
       assistantBubble.classList.add("md");
-      assistantBubble.innerHTML = renderMarkdown(assistantText);
+      const msg = {
+        content: assistantText,
+        tools: streamTools,
+      };
+      assistantBubble.innerHTML = renderAssistantContent(msg);
     }
 
     try {
@@ -307,41 +498,50 @@
             continue;
           }
 
-          if (eventName === "session" && payload.session_id) {
+          if (eventName === "session" && payload.session_id && !sessionId) {
             setSessionId(payload.session_id);
           } else if (eventName === "delta" && payload.text) {
             assistantText += payload.text;
-            renderAssistantBubble();
+            scheduleRenderAssistantBubble();
           } else if (eventName === "message" && payload.text) {
             assistantText += payload.text;
-            renderAssistantBubble();
-          } else if (eventName === "tool_start" && payload.name) {
-            const chip = document.createElement("span");
-            chip.className = "tool-chip";
-            chip.textContent = `Running ${payload.name}…`;
-            assistantBubble.appendChild(chip);
+            scheduleRenderAssistantBubble();
+          } else if (
+            eventName === "tool_start" ||
+            eventName === "tool_use" ||
+            eventName === "tool_result"
+          ) {
+            handleToolStreamEvent(eventName, payload);
+            upsertStreamTool(payload, eventName);
+            scheduleRenderAssistantBubble();
           } else if (eventName === "tool_summary" && payload.text) {
             assistantText += `\n\n${payload.text}`;
-            renderAssistantBubble();
+            scheduleRenderAssistantBubble();
           } else if (eventName === "status" && payload.status) {
             assistantBubble.innerHTML =
               `<span class="hint">${escapeHtml(payload.status)}</span>` +
-              (assistantText ? renderMarkdown(assistantText) : "");
-            if (assistantText) {
-              assistantBubble.classList.add("md");
-            }
+              (assistantText || streamTools.length
+                ? renderAssistantContent({
+                    content: assistantText,
+                    tools: streamTools,
+                  })
+                : "");
+          } else if (eventName === "started") {
+            assistantBubble.innerHTML =
+              '<span class="hint">Agent running…</span>';
           } else if (eventName === "error") {
             if (!assistantText.trim()) {
               assistantBubble.innerHTML = `<span class="error-text">${escapeHtml(payload.message || "Unknown error")}</span>`;
             }
           } else if (eventName === "done") {
-            if (payload.session_id && !payload.is_error) {
+            if (payload.session_id) {
               setSessionId(payload.session_id);
             }
-            if (payload.is_error && !assistantText.trim()) {
+            renderAssistantBubble();
+            if (payload.is_error && !assistantText.trim() && !streamTools.length) {
               assistantBubble.innerHTML = `<span class="error-text">${escapeHtml(payload.subtype || "Request failed")}</span>`;
             }
-            if (payload.mode === "agent" && !payload.is_error) {
+            if (payload.mode === "agent" && !payload.is_error && sessionId) {
               void loadHistory();
             }
           }
@@ -350,7 +550,9 @@
         messagesEl.scrollTop = messagesEl.scrollHeight;
       }
 
-      if (!assistantText.trim()) {
+      renderAssistantBubble();
+
+      if (!assistantText.trim() && !streamTools.length) {
         assistantBubble.innerHTML =
           '<span class="error-text">No response from the agent. Try again or start a new chat.</span>';
       }
