@@ -1,0 +1,120 @@
+{
+  "input": [
+    "say hello\nimport json, subprocess\nfrom cli_env import subprocess_env\n\nenv = subprocess_env()\nenv[\"NODE_ENV\"] = \"test\"\n\n# Turn 1\ncmd1 = [\"/opt/homebrew/bin/bun\", \"run\", \"[CWD]/src/entrypoints/cli.tsx\",\n        \"-p\", \"say hello\", \"--verbose\", \"--output-format\", \"stream-json\",\n        \"--permission-mode\", \"acceptEdits\", \"--add-dir\", \"[CWD]\"]\np1 = subprocess.run(cmd1, cwd=\"[CWD]\", env=env, capture_output=True, text=True, timeout=60)\nsid = None\nfor line in p1.stdout.splitlines():\n    try:\n        o = json.loads(line)\n        if o.get(\"type\")==\"system\" and o.get(\"subtype\")==\"init\":\n            sid = o.get(\"session_id\")\n        if o.get(\"type\")==\"result\":\n            print(\"turn1 result\", o.get(\"subtype\"), o.get(\"is_error\"))\n    except: pass\nprint(\"session_id\", sid)\n\n# Turn 2 with --continue\ncmd2 = cmd1[:]\ncmd2[4] = \"what did I just say?\"\ncmd2 = [c for c in cmd2 if c != \"--add-dir\" and c != \"[CWD]\"]\ncmd2.extend([\"--continue\", \"--add-dir\", \"[CWD]\"])\np2 = subprocess.run(cmd2, cwd=\"[CWD]\", env=env, capture_output=True, text=True, timeout=60)\nfor line in p2.stdout.splitlines():\n    try:\n        o = json.loads(line)\n        if o.get(\"type\")==\"result\":\n            print(\"turn2 result\", o.get(\"subtype\"), o.get(\"is_error\"), \"sid\", o.get(\"session_id\"))\n        if o.get(\"type\")==\"assistant\":\n            text = \"\".join(b.get(\"text\",\"\") for b in o.get(\"message\",{}).get(\"content\",[]) if b.get(\"type\")==\"text\")\n            if text: print(\"assistant:\", text[:120])\n    except: pass\nprint(\"exit\", p2.returncode)\n"
+  ],
+  "output": [
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "message_start",
+        "message": {
+          "id": "cfd5a3e5-9fdc-41d7-865a-946710687414",
+          "type": "message",
+          "role": "assistant",
+          "content": [],
+          "model": "MiniMax-M2.7",
+          "stop_reason": null,
+          "stop_sequence": null,
+          "usage": {
+            "input_tokens": 6998,
+            "output_tokens": 0
+          }
+        }
+      },
+      "ttftMs": 2545
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_start",
+        "index": 0,
+        "content_block": {
+          "type": "tool_use",
+          "id": "call_366f909ee68a40e39f",
+          "name": "Bash",
+          "input": {}
+        }
+      }
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": {
+          "type": "input_json_delta",
+          "partial_json": "{\"command\": \"python3 -c \\\"\\nimport json, subprocess\\nfrom cli_env import subprocess_env\\n\\nenv = subprocess_env()\\nenv['NODE_ENV'] = 'test'\\n\\n# Turn 1\\ncmd1 = ['/opt/homebrew/bin/bun', 'run', '/Users/chenw/CodeGuru/src/entrypoints/cli.tsx',\\n        '-p', 'say hello', '--verbose', '--output-format', 'stream-json',\\n        '--permission-mode', 'acceptEdits', '--add-dir', '/Users/chenw/CodeGuru']\\np1 = subprocess.run(cmd1, cwd='/Users/chenw/CodeGuru', env=env, capture_output=True, text=True, timeout=60)\\nsid = None\\nfor line in p1.stdout.splitlines():\\n    try:\\n        o = json.loads(line)\\n        if o.get('type')=='system' and o.get('subtype')=='init':\\n            sid = o.get('session_id')\\n        if o.get('type')=='result':\\n            print('turn1 result', o.get('subtype'), o.get('is_error'))\\n    except: pass\\nprint('session_id', sid)\\n\\n# Turn 2 with --continue\\ncmd2 = cmd1[:]\\ncmd2[4] = 'what did I just say?'\\ncmd2 = [c for c in cmd2 if c != '--add-dir' and c != '/Users/chenw/CodeGuru']\\ncmd2.extend(['--continue', '--add-dir', '/Users/chenw/CodeGuru'])\\np2 = subprocess.run(cmd2, cwd='/Users/chenw/CodeGuru', env=env, capture_output=True, text=True, timeout=60)\\nfor line in p2.stdout.splitlines():\\n    try:\\n        o = json.loads(line)\\n        if o.get('type')=='result':\\n            print('turn2 result', o.get('subtype'), o.get('is_error'), 'sid', o.get('session_id'))\\n        if o.get('type')=='assistant':\\n            text = ''.join(b.get('text','') for b in o.get('message',{}).get('content',[]) if b.get('type')=='text')\\n            if text: print('assistant:', text[:120])\\n    except: pass\\nprint('exit', p2.returncode)\\n\\\"\", \"timeout\": 120000}"
+        }
+      }
+    },
+    {
+      "uuid": "UUID-3",
+      "requestId": "REQUEST_ID",
+      "timestamp": "2026-06-16T01:11:07.082Z",
+      "message": {
+        "id": "cfd5a3e5-9fdc-41d7-865a-946710687414",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "call_366f909ee68a40e39f",
+            "name": "Bash",
+            "input": {
+              "command": "python3 -c \"\nimport json, subprocess\nfrom cli_env import subprocess_env\n\nenv = subprocess_env()\nenv['NODE_ENV'] = 'test'\n\n# Turn 1\ncmd1 = ['/opt/homebrew/bin/bun', 'run', '[CWD]/src/entrypoints/cli.tsx',\n        '-p', 'say hello', '--verbose', '--output-format', 'stream-json',\n        '--permission-mode', 'acceptEdits', '--add-dir', '[CWD]']\np1 = subprocess.run(cmd1, cwd='[CWD]', env=env, capture_output=True, text=True, timeout=60)\nsid = None\nfor line in p1.stdout.splitlines():\n    try:\n        o = json.loads(line)\n        if o.get('type')=='system' and o.get('subtype')=='init':\n            sid = o.get('session_id')\n        if o.get('type')=='result':\n            print('turn1 result', o.get('subtype'), o.get('is_error'))\n    except: pass\nprint('session_id', sid)\n\n# Turn 2 with --continue\ncmd2 = cmd1[:]\ncmd2[4] = 'what did I just say?'\ncmd2 = [c for c in cmd2 if c != '--add-dir' and c != '[CWD]']\ncmd2.extend(['--continue', '--add-dir', '[CWD]'])\np2 = subprocess.run(cmd2, cwd='[CWD]', env=env, capture_output=True, text=True, timeout=60)\nfor line in p2.stdout.splitlines():\n    try:\n        o = json.loads(line)\n        if o.get('type')=='result':\n            print('turn2 result', o.get('subtype'), o.get('is_error'), 'sid', o.get('session_id'))\n        if o.get('type')=='assistant':\n            text = ''.join(b.get('text','') for b in o.get('message',{}).get('content',[]) if b.get('type')=='text')\n            if text: print('assistant:', text[:120])\n    except: pass\nprint('exit', p2.returncode)\n\"",
+              "timeout": 120000
+            }
+          }
+        ],
+        "model": "MiniMax-M2.7",
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "usage": {
+          "input_tokens": 6998,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "",
+          "iterations": [],
+          "speed": "standard"
+        }
+      },
+      "type": "assistant"
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_stop",
+        "index": 0
+      }
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "message_delta",
+        "delta": {
+          "stop_reason": "tool_use",
+          "stop_sequence": null
+        },
+        "usage": {
+          "output_tokens": 0
+        }
+      }
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "message_stop"
+      }
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+# Bun config for the Claude Code dev tree (source in src/).
+# https://bun.sh/docs/cli/bunfig
+
+preload = ["./src/scripts/preload.ts"]
+
+[install]
+# Use hoisted layout to avoid symlink issues on OneDrive-synced folders.
+linker = "hoisted"
