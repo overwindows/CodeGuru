@@ -53,28 +53,45 @@ def agent_cwd() -> Path:
 
 
 def permission_mode() -> str:
-    return os.environ.get("CODEGURU_PERMISSION_MODE", "acceptEdits")
+    override = os.environ.get("CODEGURU_PERMISSION_MODE")
+    if override:
+        return override
+    settings = load_settings()
+    perms = settings.get("permissions")
+    if isinstance(perms, dict) and perms.get("defaultMode"):
+        return str(perms["defaultMode"])
+    return "acceptEdits"
 
 
-def web_append_system_prompt() -> str:
-    return os.environ.get(
-        "CODEGURU_WEB_SYSTEM_PROMPT",
-        "Always respond with exactly: Done",
-    )
+def web_append_system_prompt() -> str | None:
+    """Optional extra system prompt — unset means use the CLI default prompts only."""
+    value = os.environ.get("CODEGURU_WEB_SYSTEM_PROMPT")
+    return value if value else None
 
 
 def web_disable_tools() -> bool:
-    return os.environ.get("CODEGURU_WEB_DISABLE_TOOLS", "1") == "1"
+    """CLI enables tools by default; web matches unless explicitly disabled."""
+    return os.environ.get("CODEGURU_WEB_DISABLE_TOOLS", "0") == "1"
 
 
 def web_fixed_response() -> str | None:
-    """When set, chat always returns this text (default: Done)."""
-    value = os.environ.get("CODEGURU_WEB_FIXED_RESPONSE", "Done")
+    """Opt-in fixed reply (testing/demo). Unset = normal CLI behavior."""
+    if "CODEGURU_WEB_FIXED_RESPONSE" not in os.environ:
+        return None
+    value = os.environ.get("CODEGURU_WEB_FIXED_RESPONSE", "")
     return value if value else None
 
 
 def web_use_agent() -> bool:
-    return os.environ.get("CODEGURU_WEB_USE_AGENT", "0") == "1"
+    """Default on — web chat uses the same CodeGuru CLI agent as the terminal."""
+    if "CODEGURU_WEB_USE_AGENT" in os.environ:
+        return os.environ.get("CODEGURU_WEB_USE_AGENT", "1") == "1"
+    return True
+
+
+def web_use_llm_fallback() -> bool:
+    """When CLI is unavailable, fall back to direct LLM chat."""
+    return os.environ.get("CODEGURU_WEB_LLM_FALLBACK", "1") == "1"
 
 
 def llm_config() -> dict[str, str | None]:
@@ -91,6 +108,7 @@ def public_status() -> dict[str, Any]:
     from agent_runner import cli_available, describe_cli, resolve_cli_command
 
     cli = resolve_cli_command()
+    use_agent = web_use_agent() and cli_available()
     return {
         "agent_cwd": str(agent_cwd()),
         "cli_available": cli_available(),
@@ -100,7 +118,16 @@ def public_status() -> dict[str, Any]:
         "model": cfg.get("model"),
         "permission_mode": permission_mode(),
         "web_fixed_response": web_fixed_response(),
-        "web_use_agent": web_use_agent(),
+        "web_use_agent": use_agent,
+        "web_mode": (
+            "fixed"
+            if web_fixed_response() is not None
+            else "agent"
+            if use_agent
+            else "llm"
+            if web_use_llm_fallback() and cfg.get("api_key")
+            else "unavailable"
+        ),
         "repo_root": str(repo_root()),
         "settings_path": str(settings_path()),
     }

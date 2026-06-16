@@ -52,12 +52,15 @@ Open [http://127.0.0.1:8080](http://127.0.0.1:8080).
 | `CODEGURU_CWD` | repo root | Workspace directory for the agent |
 | `CODEGURU_CLI` | auto-detect | Override CLI launch command (recommended: `bun run ../src/entrypoints/cli.tsx`) |
 | `CODEGURU_ALLOW_NPX_BUN` | `0` | Set to `1` to fall back to `npx bun run …` if Bun is not installed |
-| `CODEGURU_PERMISSION_MODE` | `acceptEdits` | Passed to `--permission-mode` |
+| `CODEGURU_PERMISSION_MODE` | from `settings.json` or `acceptEdits` | Passed to `--permission-mode` |
 | `CODEGURU_WEB_HOST` | `127.0.0.1` | Flask bind host |
 | `CODEGURU_WEB_PORT` | `8080` | Flask bind port |
-| `CODEGURU_WEB_FIXED_RESPONSE` | `Done` | Chat always replies with this text. Set to empty to disable. |
-| `CODEGURU_WEB_USE_AGENT` | `0` | Set to `1` to run the full CodeGuru CLI agent instead of the fixed reply |
-| `CODEGURU_WEB_SYSTEM_PROMPT` | `Always respond with exactly: Done` | Appended system prompt when `CODEGURU_WEB_USE_AGENT=1` |
+| `CODEGURU_WEB_USE_AGENT` | `1` | Use the full CLI agent (default on) |
+| `CODEGURU_WEB_DISABLE_TOOLS` | `0` | Set to `1` to pass `--tools ""` to the CLI |
+| `CODEGURU_WEB_SYSTEM_PROMPT` | *(unset)* | Optional `--append-system-prompt` (CLI defaults otherwise) |
+| `CODEGURU_WEB_FIXED_RESPONSE` | *(unset)* | If set, always reply with this text (demo/testing) |
+| `CODEGURU_WEB_LLM_FALLBACK` | `1` | Direct LLM chat when CLI is unavailable |
+| `CODEGURU_CONFIG_DIR` | `~/.codeguru` | CLI config/transcript directory |
 
 ## Configuration naming
 
@@ -69,11 +72,12 @@ When spawning the upstream CLI, `cli_env.py` translates `CODEGURU_*` into the en
 
 ```
 Browser  →  Flask (CodeGuruAPI/app.py)
-              ├─ /api/chat/stream  →  agent_runner.py  →  cli_env.py  →  upstream CLI
+              ├─ /api/chat/stream  →  agent_runner.py  →  cli_env.py  →  CodeGuru CLI
+              ├─ /api/chat/history →  cli_transcripts.py (CLI jsonl) + web sessions
               └─ /api/legacy/task  →  llm_client.py     →  OpenAI-compatible chat API
 ```
 
-If the CLI is not found, chat falls back to a direct LLM conversation without tools.
+By default the web UI runs the **same CLI agent** as the terminal (tools, prompts, permission mode from `~/.codeguru/settings.json`). Conversation history is read from CLI session transcripts when available. If the CLI binary is not found, chat falls back to a direct LLM conversation without tools.
 
 ## Azure deployment
 

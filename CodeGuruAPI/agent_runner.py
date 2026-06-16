@@ -105,19 +105,20 @@ def _build_command(
         "stream-json",
         "--permission-mode",
         permission_mode(),
-        "--append-system-prompt",
-        web_append_system_prompt(),
         "--add-dir",
         str(workdir),
     ]
 
+    extra_prompt = web_append_system_prompt()
+    if extra_prompt:
+        cmd.extend(["--append-system-prompt", extra_prompt])
+
     if web_disable_tools():
         cmd.extend(["--tools", ""])
 
-    # Follow-up turns: --continue loads the latest saved transcript (reliable
-    # in print mode). --resume <uuid> fails when the jsonl is not on disk yet.
+    # Follow-up turns: resume the CLI session saved from the prior web turn.
     if session_id:
-        cmd.append("--continue")
+        cmd.extend(["--resume", session_id])
 
     return cmd
 
@@ -229,26 +230,38 @@ def _parse_line(line: str) -> Iterator[tuple[str, dict[str, Any]]]:
         yield ("status", {"status": obj.get("status")})
 
 
-def run_agent_stream(
+def _iter_process_stream(
+    proc: subprocess.Popen[str],
+) -> Iterator[tuple[str, dict[str, Any], bool]]:
+    """Yield (event_type, payload, done_is_error)."""
+    assert proc.stdout is not None
+    last_message_text: str | None = None
+    done_with_error = False
+
+    for line in proc.stdout:
+        for event_type, payload in _parse_line(line):
+            if event_type == "message":
+                text = payload.get("text") or ""
+                if text and text == last_message_text:
+                    continue
+                last_message_text = text or last_message_text
+            elif event_type == "delta" and payload.get("text"):
+                last_message_text = None
+
+            if event_type == "done" and payload.get("is_error"):
+                done_with_error = True
+            yield (event_type, payload, done_with_error)
+
+
+def _spawn_agent_process(
     prompt: str,
     *,
     session_id: str | None = None,
     cwd: Path | None = None,
-) -> Iterator[tuple[str, dict[str, Any]]]:
+) -> tuple[list[str], Path, subprocess.Popen[str]]:
     cmd = _build_command(prompt, session_id=session_id, cwd=cwd)
     workdir = cwd or agent_cwd()
-
     env = subprocess_env()
-
-    yield (
-        "started",
-        {
-            "command": cmd[:6],
-            "cwd": str(workdir),
-            "cli_kind": describe_cli(cmd),
-        },
-    )
-
     try:
         proc = subprocess.Popen(
             cmd,
@@ -261,53 +274,97 @@ def run_agent_stream(
         )
     except OSError as exc:
         raise AgentRunnerError(f"Failed to start CodeGuru CLI: {exc}") from exc
+    return cmd, workdir, proc
 
-    assert proc.stdout is not None
-    stderr_lines: list[str] = []
-    done_with_error = False
-    assistant_text = ""
 
-    for line in proc.stdout:
-        for event_type, payload in _parse_line(line):
-            if event_type == "done" and payload.get("is_error"):
-                done_with_error = True
-            elif event_type == "message" and payload.get("text"):
+def run_agent_stream(
+    prompt: str,
+    *,
+    session_id: str | None = None,
+    cwd: Path | None = None,
+) -> Iterator[tuple[str, dict[str, Any]]]:
+    resume_session_id = session_id
+    attempted_resume = bool(resume_session_id)
+
+    while True:
+        cmd, workdir, proc = _spawn_agent_process(
+            prompt,
+            session_id=resume_session_id,
+            cwd=cwd,
+        )
+
+        if not attempted_resume or resume_session_id is None:
+            yield (
+                "started",
+                {
+                    "command": cmd[:6],
+                    "cwd": str(workdir),
+                    "cli_kind": describe_cli(cmd),
+                },
+            )
+
+        stderr_lines: list[str] = []
+        done_with_error = False
+        assistant_text = ""
+        resume_error = False
+
+        for event_type, payload, done_with_error in _iter_process_stream(proc):
+            if event_type == "message" and payload.get("text"):
                 assistant_text += payload["text"]
             yield (event_type, payload)
+            if (
+                event_type == "done"
+                and payload.get("is_error")
+                and attempted_resume
+                and resume_session_id
+                and payload.get("subtype") == "error_during_execution"
+            ):
+                resume_error = True
 
-    proc.wait()
-    if proc.stderr is not None:
-        stderr_lines = [line.rstrip() for line in proc.stderr.readlines() if line.strip()]
+        proc.wait()
+        if proc.stderr is not None:
+            stderr_lines = [
+                line.rstrip() for line in proc.stderr.readlines() if line.strip()
+            ]
 
-    if proc.returncode != 0:
-        # CLI often exits 1 after surfacing the real error in stream-json output.
-        if done_with_error or assistant_text.strip():
+        if resume_error and not assistant_text.strip():
+            yield (
+                "status",
+                {"status": "Could not resume CLI session; starting a new turn."},
+            )
+            attempted_resume = False
+            resume_session_id = None
+            continue
+
+        if proc.returncode != 0:
+            if done_with_error or assistant_text.strip():
+                return
+
+            detail = "\n".join(stderr_lines[-20:]).strip()
+            if not detail:
+                detail = f"CLI exited with code {proc.returncode}"
+            elif "Cannot find module" in detail or "lodash-es" in detail:
+                detail += (
+                    "\n\nFix: install CLI dependencies in the repo root:\n"
+                    f"  cd {repo_root()} && npm install --legacy-peer-deps"
+                )
+            elif "EACCES" in detail and ".npm" in detail:
+                detail += (
+                    "\n\nFix npm cache permissions, then install Bun:\n"
+                    "  sudo chown -R \"$(whoami)\" ~/.npm\n"
+                    "  brew install oven-sh/bun/bun\n"
+                    "  export CODEGURU_CLI=\"bun run "
+                    f"{repo_root() / 'src' / 'entrypoints' / 'cli.tsx'}\""
+                )
+            elif "needs an update" in detail or "claude update" in detail:
+                detail += (
+                    "\n\nFix: install Bun for the dev CLI, or set CODEGURU_CLI to your "
+                    "local CodeGuru entrypoint. The web UI skips the upstream version gate "
+                    "when Bun is used from this repo."
+                )
+            yield ("error", {"message": detail, "code": proc.returncode})
             return
 
-        detail = "\n".join(stderr_lines[-20:]).strip()
-        if not detail:
-            detail = f"CLI exited with code {proc.returncode}"
-        elif "Cannot find module" in detail or "lodash-es" in detail:
-            detail += (
-                "\n\nFix: install CLI dependencies in the repo root:\n"
-                f"  cd {repo_root()} && npm install --legacy-peer-deps"
-            )
-        elif "EACCES" in detail and ".npm" in detail:
-            detail += (
-                "\n\nFix npm cache permissions, then install Bun:\n"
-                "  sudo chown -R \"$(whoami)\" ~/.npm\n"
-                "  brew install oven-sh/bun/bun\n"
-                "  export CODEGURU_CLI=\"bun run "
-                f"{repo_root() / 'src' / 'entrypoints' / 'cli.tsx'}\""
-            )
-        elif "needs an update" in detail or "claude update" in detail:
-            detail += (
-                "\n\nFix: install Bun for the dev CLI, or set CODEGURU_CLI to your "
-                "local CodeGuru entrypoint. The web UI skips the upstream version gate "
-                "when Bun is used from this repo."
-            )
-        yield ("error", {"message": detail, "code": proc.returncode})
+        if stderr_lines:
+            yield ("log", {"line": "\n".join(stderr_lines[-5:])})
         return
-
-    if stderr_lines:
-        yield ("log", {"line": "\n".join(stderr_lines[-5:])})

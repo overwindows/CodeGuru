@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import os
 
+from pathlib import Path
+
 from config import settings_env
 
 # Upstream CLI module env names (not used in CodeGuru application code).
@@ -44,5 +46,10 @@ def subprocess_env() -> dict[str, str]:
     # Dev tree (0.0.1-beta) is blocked by upstream remote min-version checks.
     # Web-spawned child only — keeps terminal behavior unchanged.
     env.setdefault("NODE_ENV", "test")
+    # NODE_ENV=test disables transcript writes by default; re-enable so
+    # --resume works across web chat turns (same as terminal CLI).
+    env.setdefault("TEST_ENABLE_SESSION_PERSISTENCE", "1")
+
+    env.setdefault("CODEGURU_CONFIG_DIR", str(Path.home() / ".codeguru"))
 
     return env

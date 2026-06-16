@@ -140,6 +140,27 @@ a:hover {
   text-decoration: none;
 }
 
+.nav-button {
+  margin-top: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  padding: 0.55rem 0.75rem;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.nav-button:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.nav-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .main {
   display: flex;
   flex-direction: column;
@@ -209,8 +230,73 @@ a:hover {
   padding: 0.85rem 1rem;
   border-radius: var(--radius);
   line-height: 1.55;
-  white-space: pre-wrap;
   word-break: break-word;
+}
+
+.message.user .message-bubble {
+  white-space: pre-wrap;
+}
+
+.message-bubble.md {
+  white-space: normal;
+}
+
+.message-bubble.md > :first-child {
+  margin-top: 0;
+}
+
+.message-bubble.md > :last-child {
+  margin-bottom: 0;
+}
+
+.message-bubble.md p {
+  margin: 0.5rem 0;
+}
+
+.message-bubble.md h1,
+.message-bubble.md h2,
+.message-bubble.md h3 {
+  margin: 0.75rem 0 0.35rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.message-bubble.md h1 {
+  font-size: 1.1rem;
+}
+
+.message-bubble.md ul,
+.message-bubble.md ol {
+  margin: 0.5rem 0;
+  padding-left: 1.35rem;
+}
+
+.message-bubble.md li {
+  margin: 0.25rem 0;
+}
+
+.message-bubble.md li > p {
+  margin: 0;
+}
+
+.message-bubble.md a {
+  color: #93c5fd;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.message-bubble.md a:hover {
+  color: #bfdbfe;
+}
+
+.message-bubble.md strong {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.message-bubble.md em {
+  font-style: italic;
+  color: var(--text-muted);
 }
 
 .message.user .message-bubble {

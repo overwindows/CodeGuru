@@ -37,6 +37,10 @@
           <span>{{ status.agent_cwd }}</span>
         </div>
         <div class="status-row">
+          <strong>Mode</strong>
+          <span>{{ status.web_mode }}</span>
+        </div>
+        <div class="status-row">
           <strong>Permissions</strong>
           <span>{{ status.permission_mode }}</span>
         </div>
@@ -45,6 +49,7 @@
       <nav class="nav-links">
         <a class="active" href="{{ url_for('chat_page') }}">Chat</a>
         <a href="{{ url_for('legacy_page') }}">Quick tasks</a>
+        <button type="button" class="nav-button" id="new-chat-button">New chat</button>
       </nav>
     </aside>
 
@@ -52,13 +57,14 @@
       <header class="chat-header">
         <h2>Chat with CodeGuru</h2>
         <p>
-          {% if status.cli_kind == 'claude-system' %}
-            Using the system <code>claude</code> CLI with your <code>CODEGURU_*</code> settings.
-            For custom providers (SambaNova), prefer the CodeGuru dev CLI: <code>npm install</code> in the repo, then set <code>CODEGURU_CLI="npx bun run ../src/entrypoints/cli.tsx"</code>.
-          {% elif status.cli_available %}
-            Full agent mode: read/edit files, run commands, and use tools in your workspace.
+          {% if status.web_mode == 'agent' %}
+            Same CodeGuru CLI agent as the terminal — tools, prompts, and sessions under <code>~/.codeguru/</code>.
+          {% elif status.web_mode == 'llm' %}
+            CLI not available; using direct LLM fallback (no bash/edit tools).
+          {% elif status.web_mode == 'fixed' %}
+            Demo mode: fixed reply <code>{{ status.web_fixed_response }}</code>.
           {% else %}
-            CLI not detected — using direct LLM chat. Install Bun and run from the repo for full agent features.
+            Install Bun + <code>npm install</code> in the repo, and configure <code>~/.codeguru/settings.json</code>.
           {% endif %}
         </p>
       </header>
@@ -81,8 +87,8 @@
           <button class="primary" id="send-button" type="submit">Send</button>
         </form>
         <p class="hint">
-          Agent runs locally with permission mode <code>{{ status.permission_mode }}</code>.
-          Override via <code>CODEGURU_PERMISSION_MODE</code>.
+          Uses permission mode <code>{{ status.permission_mode }}</code> from
+          <code>~/.codeguru/settings.json</code> (override with <code>CODEGURU_PERMISSION_MODE</code>).
         </p>
       </div>
     </main>
