@@ -1,0 +1,139 @@
+{
+  "input": [
+    "say hi in 3 words\nimport subprocess\nfrom cli_env import subprocess_env\nenv = subprocess_env()\nenv[\"NODE_ENV\"] = \"test\"\nproc = subprocess.Popen(\n    [\"/opt/homebrew/bin/bun\", \"run\", \"[CWD]/src/entrypoints/cli.tsx\",\n     \"-p\", \"say hi in 3 words\", \"--verbose\", \"--output-format\", \"stream-json\",\n     \"--permission-mode\", \"acceptEdits\"],\n    cwd=\"[CWD]\", env=env,\n    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,\n)\ntry:\n    out, err = proc.communicate(timeout=45)\nexcept subprocess.TimeoutExpired:\n    proc.kill()\n    out, err = proc.communicate()\n    print(\"TIMEOUT\")\nprint(\"exit\", proc.returncode)\nfor line in (out or \"\").splitlines()[:8]:\n    print(\"OUT\", line[:120])\nfor line in (err or \"\").splitlines()[-5:]:\n    if \"threw\" in line or \"Error\" in line:\n        print(\"ERR\", line[:200])\n",
+    [
+      {
+        "type": "tool_use",
+        "id": "call_fa434770709e4c4eba",
+        "name": "Bash",
+        "input": {
+          "command": "NODE_ENV=test /opt/homebrew/bin/bun run [CWD]/src/entrypoints/cli.tsx -p \"say hi in 3 words\" --verbose --output-format stream-json --permission-mode acceptedEdits 2>&1 | head -20",
+          "timeout": 45000
+        }
+      }
+    ],
+    [
+      {
+        "type": "tool_result",
+        "content": "This Bash command contains multiple operations. The following part requires approval: NODE_ENV=test /opt/homebrew/bin/bun run [CWD]/src/entrypoints/cli.tsx -p \"say hi in 3 words\" --verbose --output-format stream-json --permission-mode acceptedEdits 2 >& 1",
+        "is_error": true,
+        "tool_use_id": "call_fa434770709e4c4eba"
+      }
+    ]
+  ],
+  "output": [
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "message_start",
+        "message": {
+          "id": "5601c4c9-cc3f-4ee5-a501-5a03e39b3a6d",
+          "type": "message",
+          "role": "assistant",
+          "content": [],
+          "model": "MiniMax-M2.7",
+          "stop_reason": null,
+          "stop_sequence": null,
+          "usage": {
+            "input_tokens": 6929,
+            "output_tokens": 0
+          }
+        }
+      },
+      "ttftMs": 2208
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_start",
+        "index": 0,
+        "content_block": {
+          "type": "tool_use",
+          "id": "call_f04f669b67244126b8",
+          "name": "Bash",
+          "input": {}
+        }
+      }
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": {
+          "type": "input_json_delta",
+          "partial_json": "{\"command\": \"cd /Users/chenw/CodeGuru && NODE_ENV=test /opt/homebrew/bin/bun run src/entrypoints/cli.tsx -p \\\"say hi in 3 words\\\" --verbose --output-format stream-json --permission-mode acceptedEdits 2>&1\", \"timeout\": 45000}"
+        }
+      }
+    },
+    {
+      "uuid": "UUID-3",
+      "requestId": "REQUEST_ID",
+      "timestamp": "2026-06-16T00:31:57.243Z",
+      "message": {
+        "id": "5601c4c9-cc3f-4ee5-a501-5a03e39b3a6d",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "call_f04f669b67244126b8",
+            "name": "Bash",
+            "input": {
+              "command": "NODE_ENV=test /opt/homebrew/bin/bun run src/entrypoints/cli.tsx -p \"say hi in 3 words\" --verbose --output-format stream-json --permission-mode acceptedEdits 2>&1",
+              "timeout": 45000
+            }
+          }
+        ],
+        "model": "MiniMax-M2.7",
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "usage": {
+          "input_tokens": 6929,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "",
+          "iterations": [],
+          "speed": "standard"
+        }
+      },
+      "type": "assistant"
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_stop",
+        "index": 0
+      }
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "message_delta",
+        "delta": {
+          "stop_reason": "tool_use",
+          "stop_sequence": null
+        },
+        "usage": {
+          "output_tokens": 0
+        }
+      }
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "message_stop"
+      }
+    }
+  ]
+}

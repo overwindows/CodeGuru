@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CodeGuru</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">CG</div>
+        <div>
+          <h1>CodeGuru</h1>
+          <p>Agentic coding assistant</p>
+        </div>
+      </div>
+
+      <div class="status-card">
+        <div class="status-row">
+          <strong>Agent CLI</strong>
+          <span>
+            {% if status.cli_available %}
+              <span class="badge ok">Ready</span>
+            {% else %}
+              <span class="badge warn">Fallback LLM</span>
+            {% endif %}
+          </span>
+        </div>
+        <div class="status-row">
+          <strong>Model</strong>
+          <span>{{ status.model or 'not configured' }}</span>
+        </div>
+        <div class="status-row">
+          <strong>Workspace</strong>
+          <span>{{ status.agent_cwd }}</span>
+        </div>
+        <div class="status-row">
+          <strong>Permissions</strong>
+          <span>{{ status.permission_mode }}</span>
+        </div>
+      </div>
+
+      <nav class="nav-links">
+        <a class="active" href="{{ url_for('chat_page') }}">Chat</a>
+        <a href="{{ url_for('legacy_page') }}">Quick tasks</a>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <header class="chat-header">
+        <h2>Chat with CodeGuru</h2>
+        <p>
+          {% if status.cli_kind == 'claude-system' %}
+            Using the system <code>claude</code> CLI with your <code>CODEGURU_*</code> settings.
+            For custom providers (SambaNova), prefer the CodeGuru dev CLI: <code>npm install</code> in the repo, then set <code>CODEGURU_CLI="npx bun run ../src/entrypoints/cli.tsx"</code>.
+          {% elif status.cli_available %}
+            Full agent mode: read/edit files, run commands, and use tools in your workspace.
+          {% else %}
+            CLI not detected — using direct LLM chat. Install Bun and run from the repo for full agent features.
+          {% endif %}
+        </p>
+      </header>
+
+      <div id="messages" class="messages">
+        <div class="empty-state" id="empty-state">
+          <h3>What would you like to build or fix?</h3>
+          <p>Ask CodeGuru to explore the codebase, implement features, run tests, or review changes.</p>
+        </div>
+      </div>
+
+      <div class="composer">
+        <form id="chat-form">
+          <textarea
+            id="prompt-input"
+            placeholder="Ask CodeGuru anything about your project…"
+            rows="2"
+            autofocus
+          ></textarea>
+          <button class="primary" id="send-button" type="submit">Send</button>
+        </form>
+        <p class="hint">
+          Agent runs locally with permission mode <code>{{ status.permission_mode }}</code>.
+          Override via <code>CODEGURU_PERMISSION_MODE</code>.
+        </p>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    window.CODEGURU_STATUS = {{ status | tojson }};
+  </script>
+  <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,158 @@
+{
+  "input": [
+    "who are you"
+  ],
+  "output": [
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "message_start",
+        "message": {
+          "id": "e9732382-e5c5-4029-80b5-a808222de469",
+          "type": "message",
+          "role": "assistant",
+          "content": [],
+          "model": "MiniMax-M2.7",
+          "stop_reason": null,
+          "stop_sequence": null,
+          "usage": {
+            "input_tokens": 6289,
+            "output_tokens": 0
+          }
+        }
+      },
+      "ttftMs": 1309
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_start",
+        "index": 0,
+        "content_block": {
+          "type": "text",
+          "text": ""
+        }
+      }
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": {
+          "type": "text_delta",
+          "text": "\n\nI'm"
+        }
+      }
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": {
+          "type": "text_delta",
+          "text": " CodeGuru, Anthropic's official CLI assistant. I'm here to help you with software engineering tasks"
+        }
+      }
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": {
+          "type": "text_delta",
+          "text": " like:\n\n- Writing, editing, and refactoring code\n- Debugging and fixing bugs\n-"
+        }
+      }
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": {
+          "type": "text_delta",
+          "text": " Explaining code and architecture\n- Running tests and commands\n- Navigating and understanding codebases\n\n"
+        }
+      }
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": {
+          "type": "text_delta",
+          "text": "How can I help you today?"
+        }
+      }
+    },
+    {
+      "uuid": "UUID-7",
+      "requestId": "REQUEST_ID",
+      "timestamp": "2026-06-16T01:14:37.434Z",
+      "message": {
+        "id": "e9732382-e5c5-4029-80b5-a808222de469",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "\n\nI'm CodeGuru, Anthropic's official CLI assistant. I'm here to help you with software engineering tasks like:\n\n- Writing, editing, and refactoring code\n- Debugging and fixing bugs\n- Explaining code and architecture\n- Running tests and commands\n- Navigating and understanding codebases\n\nHow can I help you today?",
+            "citations": []
+          }
+        ],
+        "model": "MiniMax-M2.7",
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "usage": {
+          "input_tokens": 6289,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "",
+          "iterations": [],
+          "speed": "standard"
+        }
+      },
+      "type": "assistant"
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_stop",
+        "index": 0
+      }
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "message_delta",
+        "delta": {
+          "stop_reason": "end_turn",
+          "stop_sequence": null
+        },
+        "usage": {
+          "output_tokens": 0
+        }
+      }
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "message_stop"
+      }
+    }
+  ]
+}

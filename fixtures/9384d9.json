@@ -1,0 +1,136 @@
+{
+  "input": [
+    "again\nfrom agent_runner import run_agent_stream\n\ndef run(prompt, session_id=None):\n    sid = session_id\n    texts = []\n    for t, p in run_agent_stream(prompt, session_id=session_id):\n        if t == 'session' and p.get('session_id') and not p.get('is_error'):\n            sid = p['session_id']\n        if t == 'message' and p.get('text'):\n            texts.append(p['text'])\n        if t == 'done':\n            print('done', p.get('subtype'), p.get('is_error'), 'text=', (texts[-1] if texts else '')[:40])\n    return sid\n\ns1 = run('hello')\ns2 = run('again', session_id=s1)\nprint('sessions', s1, s2)\n"
+  ],
+  "output": [
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "message_start",
+        "message": {
+          "id": "44a7e427-28b1-4b11-ac59-0cb97894123d",
+          "type": "message",
+          "role": "assistant",
+          "content": [],
+          "model": "MiniMax-M2.7",
+          "stop_reason": null,
+          "stop_sequence": null,
+          "usage": {
+            "input_tokens": 6440,
+            "output_tokens": 0
+          }
+        }
+      },
+      "ttftMs": 618
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_start",
+        "index": 0,
+        "content_block": {
+          "type": "text",
+          "text": ""
+        }
+      }
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": {
+          "type": "text_delta",
+          "text": "\n\nLet me check the `agent_runner` module to understand the context.\n["
+        }
+      }
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": {
+          "type": "text_delta",
+          "text": "TOOL_CALL]\n{tool => \"Glob\", args => {\n  --pattern \"**/agent"
+        }
+      }
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": {
+          "type": "text_delta",
+          "text": "_runner*\"\n}}\n[/TOOL_CALL]"
+        }
+      }
+    },
+    {
+      "uuid": "UUID-5",
+      "requestId": "REQUEST_ID",
+      "timestamp": "2026-06-16T01:12:52.941Z",
+      "message": {
+        "id": "44a7e427-28b1-4b11-ac59-0cb97894123d",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "\n\nLet me check the `agent_runner` module to understand the context.\n[TOOL_CALL]\n{tool => \"Glob\", args => {\n  --pattern \"**/agent_runner*\"\n}}\n[/TOOL_CALL]",
+            "citations": []
+          }
+        ],
+        "model": "MiniMax-M2.7",
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "usage": {
+          "input_tokens": 6440,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "",
+          "iterations": [],
+          "speed": "standard"
+        }
+      },
+      "type": "assistant"
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_stop",
+        "index": 0
+      }
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "message_delta",
+        "delta": {
+          "stop_reason": "end_turn",
+          "stop_sequence": null
+        },
+        "usage": {
+          "output_tokens": 0
+        }
+      }
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "message_stop"
+      }
+    }
+  ]
+}
