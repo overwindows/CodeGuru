@@ -121,7 +121,7 @@ check_internal_packages() {
   )
 
   for pkg in "${pkgs[@]}"; do
-    if [[ ! -d "node_modules/${pkg}" ]]; then
+    if [[ ! -d "${REPO_ROOT}/node_modules/${pkg}" ]]; then
       missing+=("${pkg}")
     fi
   done
