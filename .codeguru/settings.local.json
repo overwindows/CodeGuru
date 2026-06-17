@@ -101,7 +101,25 @@
       "Bash(grep -rn retry /import/ml-sc-scratch1/chenw/CodeGuru/src/ui --include=*.ts --include=*.tsx)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" --max-time 10 https://github.com/overwindows/browser-use)",
       "WebFetch(domain:github.com)",
-      "Bash(gh repo:*)"
+      "Bash(gh repo:*)",
+      "Bash(ls /import/ml-sc-scratch1/chenw/CodeGuru/src/types/tools.*)",
+      "Bash(grep -r \"chatSession\\\\|sessionStorage\\\\|localStorage\" /import/ml-sc-scratch1/chenw/CodeGuru/src --include=*.ts --include=*.tsx --include=*.js -l)",
+      "Bash(bun run:*)",
+      "Read(//home/chenw/.claude/**)",
+      "Read(//home/chenw/.config/**)",
+      "Bash(bunx playwright:*)",
+      "Bash(WEB_BROWSER_TOOL=true timeout 120 bun run ./src/entrypoints/cli.tsx --print \"Go to github.com and tell me what the title of the page is\")",
+      "WebFetch(domain:www.cnn.com)",
+      "WebFetch(domain:rss.cnn.com)",
+      "WebFetch(domain:news.google.com)",
+      "WebFetch(domain:www.bbc.com)",
+      "WebFetch(domain:www.nytimes.com)",
+      "WebFetch(domain:www.washingtonpost.com)",
+      "WebFetch(domain:www.reuters.com)",
+      "WebFetch(domain:news.ycombinator.com)",
+      "WebFetch(domain:www.theguardian.com)",
+      "WebFetch(domain:www.nbcnews.com)",
+      "WebFetch(domain:www.aljazeera.com)"
     ]
   }
 }
