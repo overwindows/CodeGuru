@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CodeGuruBot")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f6f4b23070641d90dbfc91bc7e56b897d9a8318c")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+75f1997c37bd05c27dd4ef0135c1664ab5b37644")]
 [assembly: System.Reflection.AssemblyProductAttribute("CodeGuruBot")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CodeGuruBot")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
