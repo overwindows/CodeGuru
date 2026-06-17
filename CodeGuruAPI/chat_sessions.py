@@ -162,6 +162,15 @@ def set_cli_session_id(session: dict[str, Any], cli_session_id: str | None) -> N
         save_session(session)
 
 
+def delete_session(session_id: str) -> bool:
+    """Delete a session file. Returns True if deleted, False if not found."""
+    path = _session_path(session_id)
+    if path.is_file():
+        path.unlink()
+        return True
+    return False
+
+
 def sync_messages_from_cli(session: dict[str, Any], cwd: str | None = None) -> None:
     """Replace web session messages with the CLI transcript (source of truth)."""
     cli_session_id = session.get("cli_session_id")

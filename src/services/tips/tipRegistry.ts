@@ -216,7 +216,7 @@ const externalTips: Tip[] = [
   },
   {
     id: 'memory-command',
-    content: async () => 'Use /memory to view and manage Claude memory',
+    content: async () => 'Use /memory to view and manage CodeGuru memory',
     cooldownSessions: 15,
     async isRelevant() {
       const config = getGlobalConfig()
