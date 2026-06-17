@@ -1635,12 +1635,20 @@ async function loadAndCacheMarketplace(
 
       case 'directory': {
         // For directories, look for .codeguru-plugin/marketplace.json
+        // (also check .claude-plugin for backward compatibility with legacy marketplaces)
         // Resolve to absolute so error messages show the actual path checked
         // (legacy known_marketplaces.json entries may have relative paths)
         const absPath = resolve(source.path)
+        // Check if the path itself ends with .claude-plugin - if so, look for marketplace.json directly in that dir
+        const isLegacyMarketplaceDir = basename(absPath) === '.claude-plugin'
+        const legacyPath = isLegacyMarketplaceDir
+          ? join(absPath, 'marketplace.json')
+          : join(absPath, '.claude-plugin', 'marketplace.json')
         marketplacePath = join(absPath, '.codeguru-plugin', 'marketplace.json')
         temporaryCachePath = absPath
         cleanupNeeded = false
+        // Store legacy path for fallback check below
+        ;(source as { legacyMarketplacePath?: string }).legacyMarketplacePath = legacyPath
         break
       }
 
@@ -1698,11 +1706,30 @@ async function loadAndCacheMarketplace(
       )
     } catch (e) {
       if (isENOENT(e)) {
-        throw new Error(`Marketplace file not found at ${marketplacePath}`)
+        // Try legacy .claude-plugin path for backward compatibility
+        const legacyPath = (source as { legacyMarketplacePath?: string }).legacyMarketplacePath
+        if (legacyPath) {
+          try {
+            marketplace = await parseFileWithSchema(
+              legacyPath,
+              PluginMarketplaceSchema(),
+            )
+          } catch (legacyE) {
+            if (isENOENT(legacyE)) {
+              throw new Error(`Marketplace file not found at ${marketplacePath} (also tried ${legacyPath})`)
+            }
+            throw new Error(
+              `Failed to parse marketplace file at ${legacyPath}: ${errorMessage(legacyE)}`,
+            )
+          }
+        } else {
+          throw new Error(`Marketplace file not found at ${marketplacePath}`)
+        }
+      } else {
+        throw new Error(
+          `Failed to parse marketplace file at ${marketplacePath}: ${errorMessage(e)}`,
+        )
       }
-      throw new Error(
-        `Failed to parse marketplace file at ${marketplacePath}: ${errorMessage(e)}`,
-      )
     }
 
     // Now rename the cache path to use the marketplace's actual name

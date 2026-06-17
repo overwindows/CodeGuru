@@ -9,9 +9,10 @@ from pathlib import Path
 from flask import Flask, Response, jsonify, render_template, request, stream_with_context
 from werkzeug.exceptions import BadRequest, NotFound
 
-from agent_runner import AgentRunnerError, cli_available, run_agent_stream
+from agent_runner import AgentRunnerError, cli_available, run_agent_stream, stop_agent_stream
 from chat_sessions import (
     append_message,
+    delete_session,
     get_display_messages,
     get_display_tool_events,
     get_or_create_session,
@@ -187,6 +188,51 @@ def chat_new_session():
 
     session = create_session()
     return jsonify({"session_id": session["id"]})
+
+
+@app.route("/api/chat/session/<session_id>", methods=["DELETE"])
+def chat_delete_session(session_id):
+    deleted = delete_session(session_id)
+    if not deleted:
+        raise NotFound("session not found")
+    return jsonify({"deleted": True, "session_id": session_id})
+
+
+@app.route("/api/chat/stop", methods=["POST"])
+def chat_stop():
+    body = request.get_json(silent=True) or {}
+    cli_session_id = body.get("cli_session_id") or None
+
+    if not cli_session_id:
+        raise BadRequest("cli_session_id is required")
+
+    stopped = stop_agent_stream(cli_session_id)
+    return jsonify({"stopped": stopped})
+
+
+# In-flight permission requests, keyed by cli_session_id
+_permission_requests: dict[str, dict[str, Any]] = {}
+
+
+@app.route("/api/chat/permission", methods=["POST"])
+def chat_permission():
+    body = request.get_json(silent=True) or {}
+    cli_session_id = body.get("cli_session_id") or None
+    choice = body.get("choice")  # "approve" or "deny"
+
+    if not cli_session_id:
+        raise BadRequest("cli_session_id is required")
+    if choice not in ("approve", "deny"):
+        raise BadRequest("choice must be 'approve' or 'deny'")
+
+    req = _permission_requests.get(cli_session_id)
+    if not req:
+        raise NotFound("no pending permission request for this session")
+
+    # Mark as resolved; the agent_runner loop will pick this up
+    req["choice"] = choice
+    del _permission_requests[cli_session_id]
+    return jsonify({"resolved": True, "choice": choice, "cli_session_id": cli_session_id})
 
 
 @app.route("/api/chat/stream", methods=["POST"])

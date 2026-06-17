@@ -5,6 +5,7 @@
   const form = document.getElementById("chat-form");
   const input = document.getElementById("prompt-input");
   const sendButton = document.getElementById("send-button");
+  const stopButton = document.getElementById("stop-button");
   const newChatButton = document.getElementById("new-chat-button");
   const chatHistoryList = document.getElementById("chat-history-list");
   const chatHistoryEmpty = document.getElementById("chat-history-empty");
@@ -14,6 +15,8 @@
 
   let sessionId = localStorage.getItem(STORAGE_KEY);
   let isStreaming = false;
+  let currentController = null;
+  let currentCliSessionId = null;
   const toolRegistry = new Map();
 
   function stripLegacyToolMarkers(text) {
@@ -353,11 +356,15 @@
           const active = item.id === sessionId ? " active" : "";
           const disabled = isStreaming ? " disabled" : "";
           return (
+            `<div class="chat-history-item-wrapper${active}">` +
             `<button type="button" class="chat-history-item${active}"` +
             ` data-session-id="${escapeHtml(item.id)}"${disabled}>` +
             `<span class="chat-history-item-title">${escapeHtml(item.title || "Chat")}</span>` +
             `<span class="chat-history-item-meta">${escapeHtml(formatChatTime(item.updated_at))}</span>` +
-            `</button>`
+            `</button>` +
+            `<button type="button" class="chat-history-delete" title="Delete chat"` +
+            ` data-session-id="${escapeHtml(item.id)}">×</button>` +
+            `</div>`
           );
         })
         .join("");
@@ -365,6 +372,32 @@
         button.addEventListener("click", () => {
           void switchToChat(button.dataset.sessionId);
         });
+      }
+      for (const button of chatHistoryList.querySelectorAll(".chat-history-delete")) {
+        button.addEventListener("click", (e) => {
+          e.stopPropagation();
+          void deleteChat(button.dataset.sessionId);
+        });
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  async function deleteChat(id) {
+    if (!confirm("Delete this chat?")) {
+      return;
+    }
+    try {
+      const response = await fetch(`/api/chat/session/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        if (sessionId === id) {
+          setSessionId(null);
+          clearMessages();
+        }
+        await loadChatList();
       }
     } catch {
       // ignore
@@ -386,6 +419,9 @@
     isStreaming = active;
     sendButton.disabled = active;
     input.disabled = active;
+    if (stopButton) {
+      stopButton.classList.toggle("hidden", !active);
+    }
     if (newChatButton) {
       newChatButton.disabled = active;
     }
@@ -522,6 +558,7 @@
     }
 
     try {
+      currentController = new AbortController();
       const response = await fetch("/api/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -529,6 +566,7 @@
           message,
           session_id: sessionId,
         }),
+        signal: currentController.signal,
       });
 
       if (!response.ok || !response.body) {
@@ -575,6 +613,7 @@
 
           if (eventName === "session" && payload.session_id && !sessionId) {
             setSessionId(payload.session_id);
+            currentCliSessionId = payload.session_id;
           } else if (eventName === "delta" && payload.text) {
             assistantText += payload.text;
             scheduleRenderAssistantBubble();
@@ -636,8 +675,15 @@
         }
       }
     } catch (error) {
-      assistantBubble.innerHTML = `<span class="error-text">${escapeHtml(error.message || String(error))}</span>`;
+      if (error.name === "AbortError") {
+        assistantBubble.innerHTML =
+          '<span class="hint">Request stopped.</span>';
+      } else {
+        assistantBubble.innerHTML = `<span class="error-text">${escapeHtml(error.message || String(error))}</span>`;
+      }
     } finally {
+      currentController = null;
+      currentCliSessionId = null;
       setStreaming(false);
       if (reloadAfterStream) {
         void loadHistory();
@@ -662,6 +708,26 @@
   if (newChatButton) {
     newChatButton.addEventListener("click", () => {
       void startNewChat();
+    });
+  }
+
+  if (stopButton) {
+    stopButton.addEventListener("click", async () => {
+      if (!currentCliSessionId || !currentController) {
+        return;
+      }
+      // Abort the fetch request
+      currentController.abort();
+      // Notify server to kill the subprocess
+      try {
+        await fetch("/api/chat/stop", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cli_session_id: currentCliSessionId }),
+        });
+      } catch {
+        // ignore — fetch abort will handle local cleanup
+      }
     });
   }
 

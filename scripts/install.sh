@@ -14,6 +14,40 @@ die()   { printf '\033[31m%s\033[0m\n' "$*" >&2; exit 1; }
 
 command_exists() { command -v "$1" >/dev/null 2>&1; }
 
+load_fnm() {
+  if command_exists fnm; then
+    # shellcheck disable=SC2046
+    eval "$(fnm env --use-on-cd --shell bash)"
+    return
+  fi
+
+  local dir
+  for dir in \
+    "${HOME}/.fnm" \
+    "${HOME}/Library/Application Support/fnm" \
+    "${HOME}/.local/share/fnm" \
+    "${FNM_DIR:-}"; do
+    [[ -n "${dir}" && -x "${dir}/fnm" ]] || continue
+    export PATH="${dir}:${PATH}"
+    # shellcheck disable=SC2046
+    eval "$(fnm env --use-on-cd --shell bash)"
+    return
+  done
+}
+
+install_fnm() {
+  info "Installing fnm (Node version manager)..."
+  local fnm_args=(--skip-shell)
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    # fnm's installer uses Homebrew on macOS by default, which fails on older macOS.
+    fnm_args+=(--force-no-brew)
+    info "Using fnm binary (skipping Homebrew on macOS)."
+  fi
+  curl -fsSL https://fnm.vercel.app/install | bash -s -- "${fnm_args[@]}"
+  load_fnm
+  command_exists fnm || die "fnm install failed. Install Node.js 18+ manually: https://nodejs.org/"
+}
+
 ensure_node() {
   if command_exists node; then
     local major
@@ -26,26 +60,16 @@ ensure_node() {
   fi
 
   info "Node.js 18+ not found."
-  if [[ "$(uname -s)" == "Darwin" ]] && command_exists brew; then
-    info "Installing fnm via Homebrew..."
-    brew install fnm
-    eval "$(fnm env --use-on-cd)"
-    fnm install 22
-    fnm use 22
-  elif command_exists curl; then
-    info "Installing fnm..."
-    curl -fsSL https://fnm.vercel.app/install | bash
-    # shellcheck disable=SC1091
-    source "${HOME}/.bashrc" 2>/dev/null || true
-    if [[ -f "${HOME}/.zshrc" ]]; then
-      # shellcheck disable=SC1090
-      source "${HOME}/.zshrc" 2>/dev/null || true
-    fi
-    fnm install 22
-    fnm use 22
+  if command_exists fnm; then
+    load_fnm
   else
-    die "Install Node.js 18+ manually: https://nodejs.org/"
+    install_fnm
   fi
+
+  fnm install 22
+  fnm use 22
+  load_fnm
+  command_exists node || die "Node.js not on PATH after fnm install. Run: eval \"\$(fnm env)\""
   ok "[ok] Node.js $(node --version)"
 }
 
