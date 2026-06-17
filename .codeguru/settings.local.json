@@ -119,7 +119,23 @@
       "WebFetch(domain:news.ycombinator.com)",
       "WebFetch(domain:www.theguardian.com)",
       "WebFetch(domain:www.nbcnews.com)",
-      "WebFetch(domain:www.aljazeera.com)"
+      "WebFetch(domain:www.aljazeera.com)",
+      "Bash(npm run:*)",
+      "WebFetch(domain:apnews.com)",
+      "WebFetch(domain:news.yahoo.com)",
+      "WebFetch(domain:www.yahoo.com)",
+      "WebFetch(domain:feeds.a.dj.com)",
+      "WebFetch(domain:www.npr.org)",
+      "WebFetch(domain:www.huffpost.com)",
+      "WebFetch(domain:www.washingtontimes.com)",
+      "WebFetch(domain:www.breitbart.com)",
+      "WebFetch(domain:mail.google.com)",
+      "WebFetch(domain:www.bing.com)",
+      "WebFetch(domain:arxiv.org)",
+      "WebFetch(domain:www.deepseek.com)",
+      "WebFetch(domain:www.semanticscholar.org)",
+      "WebFetch(domain:broadwaysanjose.com)",
+      "WebFetch(domain:www.ticketmaster.com)"
     ]
   }
 }
