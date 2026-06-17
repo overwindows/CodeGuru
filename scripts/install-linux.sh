@@ -6,6 +6,7 @@ set -euo pipefail
 INSTALL_MODE="${INSTALL_MODE:-user}"   # 'user' | 'system'
 FORCE="${FORCE:-}"
 SKIP_DEPS="${SKIP_DEPS:-}"
+SKIP_INTERNAL_CHECK="${SKIP_INTERNAL_CHECK:-}"  # Set to 1 if you have internal packages
 
 # ── Colours ───────────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
@@ -24,6 +25,12 @@ CACHE_DIR="${HOME}/.cache/codeguru"
 CONFIG_DIR="${HOME}/.config/codeguru"
 CONFIG_FILE="${CONFIG_DIR}/settings.json"
 EXAMPLE_SETTINGS="${REPO_ROOT}/scripts/settings.example.json"
+
+# ── Pre-flight notice ─────────────────────────────────────────────────────────
+info "NOTE: This repo contains internal packages (@anthropic-ai/*, @ant/*) not on"
+info "      the public npm registry. A raw public checkout CANNOT be built."
+info "      For production use: curl -fsSL https://claude.ai/install.sh | sh"
+echo ""
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 command_exists() { command -v "$1" >/dev/null 2>&1; }
@@ -91,10 +98,67 @@ install_bun() {
 }
 
 # ── Build ─────────────────────────────────────────────────────────────────────
+check_internal_packages() {
+  info "Checking for internal packages (required for build)..."
+
+  local missing=()
+  local pkgs=(
+    "@anthropic-ai/mcpb"
+    "@anthropic-ai/bedrock-sdk"
+    "@anthropic-ai/foundry-sdk"
+    "@anthropic-ai/vertex-sdk"
+    "@azure/identity"
+    "@opentelemetry/exporter-metrics-otlp-grpc"
+    "@opentelemetry/exporter-metrics-otlp-http"
+    "@opentelemetry/exporter-metrics-otlp-proto"
+    "@opentelemetry/exporter-prometheus"
+    "@opentelemetry/exporter-logs-otlp-grpc"
+    "@opentelemetry/exporter-logs-otlp-http"
+    "@opentelemetry/exporter-logs-otlp-proto"
+    "@opentelemetry/exporter-trace-otlp-grpc"
+    "@opentelemetry/exporter-trace-otlp-http"
+    "@opentelemetry/exporter-trace-otlp-proto"
+  )
+
+  for pkg in "${pkgs[@]}"; do
+    if [[ ! -d "node_modules/${pkg}" ]]; then
+      missing+=("${pkg}")
+    fi
+  done
+
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    echo ""
+    die "Missing internal/private packages:"
+    for pkg in "${missing[@]}"; do
+      printf "  - %s\n" "${pkg}"
+    done
+    echo ""
+    die "This repository contains internal packages NOT on the public npm registry."
+    die "These packages are available only via Anthropic's internal network."
+    echo ""
+    info "For production use, install the official Claude Code instead:"
+    info "  curl -fsSL https://claude.ai/install.sh | sh"
+    echo ""
+    info "For development with internal packages, you need:"
+    info "  1. Access to Anthropic's internal npm registry"
+    info "  2. The internal package sources (AssistantSessionChooser.js, TungstenTool.js, etc.)"
+    info "  3. A fully populated node_modules directory from that registry"
+    echo ""
+    die "Cannot build CodeGuru from this public checkout."
+  fi
+
+  ok "All internal packages found"
+}
+
 build_codeguru() {
   info "Building CodeGuru CLI..."
 
   mkdir -p "${BUILD_DIR}"
+
+  # Check for internal packages before attempting build (skip if opted out)
+  if [[ -z "${SKIP_INTERNAL_CHECK}" ]]; then
+    check_internal_packages
+  fi
 
   # Build for Linux x64
   bun build \
@@ -213,6 +277,9 @@ main() {
   info "  1. Add ${USER_BIN_DIR} to your PATH if needed"
   info "  2. Edit ${CONFIG_FILE} and set CODEGURU_AUTH_TOKEN"
   info "  3. Run: codeguru"
+  echo ""
+  info "To bypass the internal package check (if you have them):"
+  info "  SKIP_INTERNAL_CHECK=1 ./scripts/install-linux.sh"
   echo ""
   info "To uninstall:"
   info "  rm ${USER_BIN_DIR}/${BIN_NAME}"

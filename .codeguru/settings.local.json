@@ -176,7 +176,8 @@
       "WebFetch(domain:www.semanticscholar.org)",
       "WebFetch(domain:broadwaysanjose.com)",
       "WebFetch(domain:www.ticketmaster.com)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(bash scripts/install-linux.sh)"
     ]
   }
 }
