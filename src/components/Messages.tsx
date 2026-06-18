@@ -33,6 +33,7 @@ import { plural } from '../utils/stringUtils.js';
 import { renderableSearchText } from '../utils/transcriptSearch.js';
 import { Divider } from './design-system/Divider.js';
 import type { UnseenDivider } from './FullscreenLayout.js';
+import { LogoV2 } from './LogoV2/LogoV2.js';
 import { StreamingMarkdown } from './Markdown.js';
 import { hasContentAfterIndex, MessageRow } from './MessageRow.js';
 import { InVirtualListContext, type MessageActionsNav, MessageActionsSelectedContext, type MessageActionsState } from './messageActions.js';
@@ -43,22 +44,35 @@ import type { ToolUseConfirm } from './permissions/PermissionRequest.js';
 import { StatusNotices } from './StatusNotices.js';
 import type { JumpHandle } from './VirtualMessageList.js';
 
-// Memoed header: StatusNotices only (logo banner removed). Memo on
-// agentDefinitions so a new messages array doesn't invalidate the subtree.
+// Memoed logo header: this box is the FIRST sibling before all MessageRows
+// in main-screen mode. If it becomes dirty on every Messages re-render,
+// renderChildren's seenDirtyChild cascade disables prevScreen (blit) for
+// ALL subsequent siblings — every MessageRow re-writes from scratch instead
+// of blitting. In long sessions (~2800 messages) this is 150K+ writes/frame
+// and pegs CPU at 100%. Memo on agentDefinitions so a new messages array
+// doesn't invalidate the logo subtree. LogoV2/StatusNotices internally
+// subscribe to useAppState/useSettings for their own updates.
 const LogoHeader = React.memo(function LogoHeader(t0) {
-  const $ = _c(2);
+  const $ = _c(3);
   const {
     agentDefinitions
   } = t0;
   let t1;
-  if ($[0] !== agentDefinitions) {
-    t1 = <OffscreenFreeze><Box flexDirection="column" gap={1}><React.Suspense fallback={null}><StatusNotices agentDefinitions={agentDefinitions} /></React.Suspense></Box></OffscreenFreeze>;
-    $[0] = agentDefinitions;
-    $[1] = t1;
+  if ($[0] === Symbol.for("react.memo_cache_sentinel")) {
+    t1 = <LogoV2 />;
+    $[0] = t1;
   } else {
-    t1 = $[1];
+    t1 = $[0];
   }
-  return t1;
+  let t2;
+  if ($[1] !== agentDefinitions) {
+    t2 = <OffscreenFreeze><Box flexDirection="column" gap={1}>{t1}<React.Suspense fallback={null}><StatusNotices agentDefinitions={agentDefinitions} /></React.Suspense></Box></OffscreenFreeze>;
+    $[1] = agentDefinitions;
+    $[2] = t2;
+  } else {
+    t2 = $[2];
+  }
+  return t2;
 });
 
 // Dead code elimination: conditional import for proactive mode
@@ -661,7 +675,7 @@ const MessagesImpl = ({
     return lowered;
   }, [tools, lookups_0]);
   return <>
-      {/* Status notices (startup banner removed) */}
+      {/* Logo */}
       {!hideLogo && !(renderRange && renderRange[0] > 0) && <LogoHeader agentDefinitions={agentDefinitions} />}
 
       {/* Truncation indicator */}
