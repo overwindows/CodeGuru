@@ -15,7 +15,7 @@ ply==3.11
 pypandoc_binary
 python-dateutil==2.8.2
 python-json-logger==2.0.7
-python-multipart==0.0.6
+python-multipart==0.0.31
 python-slugify==8.0.0
 PyYAML==6.0
 pyzmq==25.0.2
