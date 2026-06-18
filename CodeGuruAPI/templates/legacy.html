@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CodeGuru — Quick Tasks</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body class="legacy-page">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">CG</div>
+        <div>
+          <h1>CodeGuru</h1>
+          <p>Quick code tasks</p>
+        </div>
+      </div>
+
+      <div class="status-card">
+        <div class="status-row">
+          <strong>LLM API</strong>
+          <span>
+            {% if status.llm_configured %}
+              <span class="badge ok">Configured</span>
+            {% else %}
+              <span class="badge warn">Missing key</span>
+            {% endif %}
+          </span>
+        </div>
+        <div class="status-row">
+          <strong>Model</strong>
+          <span>{{ status.model or 'not configured' }}</span>
+        </div>
+      </div>
+
+      <nav class="nav-links">
+        <a href="{{ url_for('chat_page') }}">Chat</a>
+        <a class="active" href="{{ url_for('legacy_page') }}">Quick tasks</a>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <header class="chat-header">
+        <h2>Quick tasks</h2>
+        <p>One-shot prompts for code review, tests, translation, and more. Uses your configured LLM API.</p>
+      </header>
+
+      <div class="legacy-grid">
+        <section class="panel">
+          <h3>Input</h3>
+          <label for="task-select">Task</label>
+          <select id="task-select">
+            <option value="code_review">Code review</option>
+            <option value="commit_msg">Commit message</option>
+            <option value="code_beautify">Beautify code</option>
+            <option value="code_trans">Translate to C#</option>
+            <option value="gen_tests">Generate tests</option>
+            <option value="func_desc">Explain function</option>
+            <option value="perf_opt">Performance optimization</option>
+            <option value="bug_fix">Bug fix suggestion</option>
+          </select>
+
+          <label for="code-input" style="margin-top: 0.75rem;">Code</label>
+          <textarea id="code-input" placeholder="Paste your code here…"></textarea>
+
+          <div style="margin-top: 0.85rem;">
+            <button class="primary" id="run-task" type="button">Run task</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h3>Result</h3>
+          <div id="legacy-result" class="legacy-result">Results will appear here.</div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/legacy.js') }}"></script>
+</body>
+</html>
