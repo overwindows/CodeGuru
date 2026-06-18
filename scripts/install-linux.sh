@@ -103,21 +103,8 @@ check_internal_packages() {
 
   local missing=()
   local pkgs=(
-    "@anthropic-ai/mcpb"
-    "@anthropic-ai/bedrock-sdk"
-    "@anthropic-ai/foundry-sdk"
-    "@anthropic-ai/vertex-sdk"
-    "@azure/identity"
-    "@opentelemetry/exporter-metrics-otlp-grpc"
-    "@opentelemetry/exporter-metrics-otlp-http"
-    "@opentelemetry/exporter-metrics-otlp-proto"
-    "@opentelemetry/exporter-prometheus"
-    "@opentelemetry/exporter-logs-otlp-grpc"
-    "@opentelemetry/exporter-logs-otlp-http"
-    "@opentelemetry/exporter-logs-otlp-proto"
-    "@opentelemetry/exporter-trace-otlp-grpc"
-    "@opentelemetry/exporter-trace-otlp-http"
-    "@opentelemetry/exporter-trace-otlp-proto"
+    "@anthropic-ai/sandbox-runtime"
+    "@anthropic-ai/sdk"
   )
 
   for pkg in "${pkgs[@]}"; do
