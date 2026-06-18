@@ -40,6 +40,7 @@
     "auto-bind": "^5.0.1",
     "axios": "^1.17.0",
     "bidi-js": "^1.0.3",
+    "build": "^0.1.4",
     "chalk": "^5.6.2",
     "chokidar": "^4.0.3",
     "cli-boxes": "^3.0.0",
