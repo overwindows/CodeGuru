@@ -12,3 +12,7 @@ globalThis.MACRO = {
   ISSUES_EXPLAINER: '',
   FEEDBACK_CHANNEL: '',
 };
+
+if (process.env.CLAUDE_CODE_FORCE_FULL_LOGO === undefined) {
+  process.env.CLAUDE_CODE_FORCE_FULL_LOGO = '1';
+}

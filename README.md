@@ -1,27 +1,20 @@
-# Claude Code (dev tree)
+# CodeGuru
 
-This directory is the **project root** for local development. **Application source** lives in **`src/`** (upstream-style layout).
+CodeGuru is an AI-powered coding assistant that provides intelligent code completion, refactoring suggestions, and development workflow automation.
 
-| Location | Purpose |
-|----------|---------|
-| **`package.json`**, **`bunfig.toml`**, **`tsconfig.json`** | Install and editor/tooling from **this** folder |
-| **`src/`** | TypeScript source (CLI, REPL, services, tools) — see [`src/README.md`](./src/README.md) |
-| **[`SETUP.md`](./SETUP.md)** | Run the official app vs develop this source, env vars, prerequisites |
-| **`scripts/install.sh`** | One-step install on **macOS / Linux** |
+This repository contains the **development tree** for local development. The application source code resides in the **`src/`** directory.
 
-## Quick start (development)
+## Directory Structure
 
-### Install (macOS / Linux)
+| Path | Description |
+|------|-------------|
+| `package.json`, `bunfig.toml`, `tsconfig.json` | Project configuration and tooling dependencies |
+| `src/` | TypeScript source code (CLI, services, tools) |
+| `scripts/install-linux.sh` | Automated installation script for macOS and Linux |
 
-```bash
-./scripts/install.sh
-```
+## Prerequisites
 
-On **Windows**, run `.\scripts\install.ps1` in PowerShell.
-
-### Prerequisites (manual install)
-
-- **Node.js 18+** — install via [fnm](https://github.com/Schniz/fnm) (recommended on Windows):
+- **Node.js 18+** — recommended installation via [fnm](https://github.com/Schniz/fnm):
   ```powershell
   winget install Schniz.fnm
   fnm install 22
@@ -33,23 +26,28 @@ On **Windows**, run `.\scripts\install.ps1` in PowerShell.
   # or: npm install -g bun
   ```
 
-### Install & run
+## Quick Start
 
-1. From **this** directory (`Claude Code/`, not only `src/`), install dependencies with **npm** (recommended on Windows/OneDrive — Bun's isolated linker can break with synced folders):
+### Automated Installation
 
+**macOS / Linux:**
+```bash
+./scripts/install-linux.sh
+```
+
+**Windows:**
+```powershell
+.\scripts\install.ps1
+```
+
+### Manual Installation
+
+1. Navigate to the project root and install dependencies:
    ```bash
-   npm install --legacy-peer-deps
+   bun install
    ```
 
-2. Fix React version compatibility (the source uses React 19 APIs):
-
-   ```bash
-   npm install react@^19.0.0 react-reconciler@0.34.0-canary-ed69815c-20260323 --legacy-peer-deps
-   ```
-
-3. Configure your model provider via `%USERPROFILE%\.codeguru\settings.json`:
-
-   **SambaNova (OpenAI-compatible) example — `C:\Users\<you>\.codeguru\settings.json`:**
+2. Configure your model provider in `~/.config/codeguru/settings.json`. The following example uses SambaNova (OpenAI-compatible API):
 
    ```json
    {
@@ -65,44 +63,36 @@ On **Windows**, run `.\scripts\install.ps1` in PowerShell.
    }
    ```
 
-   All `CODEGURU_*` keys are bridged to their `ANTHROPIC_*` / `CLAUDE_*` equivalents at runtime — you never need to set `ANTHROPIC_*` variables directly.  Any OpenAI-compatible provider works: just point `CODEGURU_BASE_URL` at the provider's `/v1` endpoint, set `CODEGURU_AUTH_TOKEN` to your key, and set `CODEGURU_MODEL` to the model name.
+   CodeGuru bridges all `CODEGURU_*` environment variables to their `ANTHROPIC_*` / `CLAUDE_*` equivalents at runtime. Any OpenAI-compatible API provider is supported—configure `CODEGURU_BASE_URL` to point to the provider's `/v1` endpoint, set `CODEGURU_AUTH_TOKEN` to your API key, and specify `CODEGURU_MODEL` with your desired model name.
 
-   > **Note:** include `/v1` in `CODEGURU_BASE_URL` — CodeGuru strips it before handing the URL to the SDK, which adds its own `/v1/…` paths. The setting value matches what your provider documents (e.g. `https://api.sambanova.ai/v1`).
+   > **Note:** Ensure `CODEGURU_BASE_URL` includes the `/v1` suffix. CodeGuru handles the path construction internally.
 
-   **Optional: Anthropic API key instead:**
-
-   ```powershell
-   $env:ANTHROPIC_API_KEY = "sk-ant-..."
+   **Anthropic API (alternative):**
+   ```bash
+   export ANTHROPIC_API_KEY="sk-ant-..."
    ```
 
-4. Run the dev entrypoint:
-
+3. Start the development server:
    ```bash
    bun run dev
    ```
 
-5. Check prerequisites:
-
+4. Verify environment setup:
    ```bash
    bun run check-env
-   # or: python3 scripts/check-dev-environment.py
    ```
 
-> **Note (Windows):** Each new PowerShell session needs PATH setup for fnm/bun:
+> **Windows Note:** New PowerShell sessions require PATH configuration for fnm and bun:
 > ```powershell
 > $env:Path = [System.Environment]::GetEnvironmentVariable("Path","User") + ";" + [System.Environment]::GetEnvironmentVariable("Path","Machine")
 > fnm env --use-on-cd --shell powershell | Out-String | Invoke-Expression
 > ```
 
-## Internal / private packages
+## Internal Packages
 
-Some files import packages that are **not** on the public npm registry, for example:
+Some modules depend on packages from Anthropic's internal npm registry that are not publicly available, including:
 
-- `@ant/*` (computer use, Chrome MCP, …)
-- `@anthropic-ai/claude-agent-sdk`, `@anthropic-ai/sandbox-runtime`, `@anthropic-ai/mcpb`, …
+- `@ant/*` (Chrome MCP, etc.)
+- `@anthropic-ai/sandbox-runtime`, `@anthropic-ai/sdk`
 
-Those paths are gated or stripped in **shipping** builds. A raw `src/` checkout plus this `package.json` is enough to explore and typecheck **much** of the code, but **not** guaranteed to match Anthropic’s full production bundle. For a **supported** install, use the [official Claude Code setup](https://code.claude.com/docs/en/setup).
-
-## Run the product (no build)
-
-To **use** Claude Code without compiling this repo, install via the official installer or `winget` — see **SETUP.md §A**.
+These dependencies are gated or stripped in production builds. A standard `src/` checkout with `node_modules` from Anthropic's internal registry is sufficient for most development tasks but may not replicate the complete production bundle. For a fully supported installation, use the official installer.

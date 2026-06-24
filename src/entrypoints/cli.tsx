@@ -14,6 +14,12 @@ if (typeof (globalThis as any).MACRO === 'undefined') {
   };
 }
 
+// CodeGuru: full bordered startup logo by default (set CLAUDE_CODE_FORCE_FULL_LOGO=0 to disable).
+// eslint-disable-next-line custom-rules/no-top-level-side-effects
+if (process.env.CLAUDE_CODE_FORCE_FULL_LOGO === undefined) {
+  process.env.CLAUDE_CODE_FORCE_FULL_LOGO = '1';
+}
+
 // Lightweight debug helper for the bootstrap phase — usable before any imports.
 // Active when DEBUG=1, DEBUG_SDK=1, or --debug / --debug-to-stderr is passed.
 // Writes to stderr so it never corrupts stdout (MCP JSON, --print output, etc.).

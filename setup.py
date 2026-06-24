@@ -24,7 +24,6 @@ def read_requirements() -> list[str]:
         if line.strip() and not line.strip().startswith("#")
     ]
 
-
 setup(
     name="codeguru-doc",
     version="0.1.0",

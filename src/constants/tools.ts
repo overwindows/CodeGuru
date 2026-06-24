@@ -12,6 +12,7 @@ import { TODO_WRITE_TOOL_NAME } from '../tools/TodoWriteTool/constants.js'
 import { GREP_TOOL_NAME } from '../tools/GrepTool/prompt.js'
 import { WEB_FETCH_TOOL_NAME } from '../tools/WebFetchTool/prompt.js'
 import { GLOB_TOOL_NAME } from '../tools/GlobTool/prompt.js'
+import { WEB_BROWSER_TOOL_NAME } from '../tools/WebBrowserTool/constants.js'
 import { SHELL_TOOL_NAMES } from '../utils/shell/shellToolUtils.js'
 import { FILE_EDIT_TOOL_NAME } from '../tools/FileEditTool/constants.js'
 import { FILE_WRITE_TOOL_NAME } from '../tools/FileWriteTool/prompt.js'
@@ -68,6 +69,7 @@ export const ASYNC_AGENT_ALLOWED_TOOLS = new Set([
   TOOL_SEARCH_TOOL_NAME,
   ENTER_WORKTREE_TOOL_NAME,
   EXIT_WORKTREE_TOOL_NAME,
+  WEB_BROWSER_TOOL_NAME,
 ])
 /**
  * Tools allowed only for in-process teammates (not general async agents).
