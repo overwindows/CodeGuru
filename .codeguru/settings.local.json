@@ -214,7 +214,8 @@
       "Bash(find /nvmedata/chenw/CodeGuru -type f -iname *logo*)",
       "Bash(grep -r \"LogoV2\\\\|logo\" /nvmedata/chenw/CodeGuru/src --include=*.tsx --include=*.ts -l)",
       "Bash(find /nvmedata/chenw/CodeGuru -type f -iname *welcome*)",
-      "Bash(grep -r \"WelcomeV2\\\\|LogoV2\" /nvmedata/chenw/CodeGuru/src --include=*.tsx --include=*.ts)"
+      "Bash(grep -r \"WelcomeV2\\\\|LogoV2\" /nvmedata/chenw/CodeGuru/src --include=*.tsx --include=*.ts)",
+      "WebFetch(domain:github.sambanovasystems.com)"
     ]
   }
 }
