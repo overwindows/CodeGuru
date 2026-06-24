@@ -1,7 +1,7 @@
 {
-  "version": 3,
+  "version": 4,
   "targets": {
-    ".NETCoreApp,Version=v3.1": {
+    "netcoreapp3.1": {
       "AdaptiveExpressions/4.18.1": {
         "type": "package",
         "dependencies": {
@@ -10104,7 +10104,7 @@
     }
   },
   "projectFileDependencyGroups": {
-    ".NETCoreApp,Version=v3.1": [
+    "netcoreapp3.1": [
       "Microsoft.AspNetCore.Mvc.NewtonsoftJson >= 3.1.8",
       "Microsoft.Bot.Builder.AI.Luis >= 4.18.1",
       "Microsoft.Bot.Builder.AI.QnA >= 4.18.1",
@@ -10136,6 +10136,7 @@
       },
       "frameworks": {
         "netcoreapp3.1": {
+          "framework": "netcoreapp3.1",
           "targetAlias": "netcoreapp3.1",
           "projectReferences": {}
         }
@@ -10150,10 +10151,11 @@
         "auditLevel": "low",
         "auditMode": "direct"
       },
-      "SdkAnalysisLevel": "10.0.200"
+      "SdkAnalysisLevel": "10.0.300"
     },
     "frameworks": {
       "netcoreapp3.1": {
+        "framework": "netcoreapp3.1",
         "targetAlias": "netcoreapp3.1",
         "dependencies": {
           "Microsoft.AspNetCore.Mvc.NewtonsoftJson": {
@@ -10192,7 +10194,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.204\\RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.301\\RuntimeIdentifierGraph.json"
       }
     }
   },
@@ -10210,7 +10212,7 @@
       "message": "Package 'Microsoft.Azure.KeyVault.Core 1.0.0' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework '.NETCoreApp,Version=v3.1'. This package may not be fully compatible with your project.",
       "libraryId": "Microsoft.Azure.KeyVault.Core",
       "targetGraphs": [
-        ".NETCoreApp,Version=v3.1"
+        "netcoreapp3.1"
       ]
     }
   ]
