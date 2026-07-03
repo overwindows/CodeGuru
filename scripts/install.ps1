@@ -48,7 +48,7 @@ function Ensure-Bun {
     return
   }
 
-  Write-Info "Bun not found — installing..."
+  Write-Info "Bun not found - installing..."
   if (Test-Command winget) {
     winget install Oven-sh.Bun --accept-package-agreements --accept-source-agreements
   } else {
@@ -76,7 +76,7 @@ function Ensure-Settings {
   }
   New-Item -ItemType Directory -Path $SettingsDir -Force | Out-Null
   Copy-Item $ExampleSettings $SettingsFile
-  Write-Ok "[ok] Created $SettingsFile from template — edit and add your API key"
+  Write-Ok "[ok] Created $SettingsFile from template - edit and add your API key"
 }
 
 Write-Info "CodeGuru install (Windows)"
