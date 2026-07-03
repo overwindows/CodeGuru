@@ -215,7 +215,11 @@
       "Bash(grep -r \"LogoV2\\\\|logo\" /nvmedata/chenw/CodeGuru/src --include=*.tsx --include=*.ts -l)",
       "Bash(find /nvmedata/chenw/CodeGuru -type f -iname *welcome*)",
       "Bash(grep -r \"WelcomeV2\\\\|LogoV2\" /nvmedata/chenw/CodeGuru/src --include=*.tsx --include=*.ts)",
-      "WebFetch(domain:github.sambanovasystems.com)"
+      "WebFetch(domain:github.sambanovasystems.com)",
+      "Read(//import/ml-sc-scratch1/chenw/mtp/**)",
+      "Bash(for branch:*)",
+      "Bash(do git:*)",
+      "Bash(grep -rn \"verify\\\\|speculat\" --include=*.py finalized_mtp_infra/inference/)"
     ]
   }
 }
