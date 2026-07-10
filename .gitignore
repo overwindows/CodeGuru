@@ -5,3 +5,4 @@ node_modules/
 .DS_Store
 fixtures/*.json
 dist/codeguru
+.codeguru/settings.local.json
