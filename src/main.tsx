@@ -96,6 +96,9 @@ import { checkQuotaStatus } from './services/claudeAiLimits.js';
 import { getMcpToolsCommandsAndResources, prefetchAllMcpResources } from './services/mcp/client.js';
 import { VALID_INSTALLABLE_SCOPES, VALID_UPDATE_SCOPES } from './services/plugins/pluginCliCommands.js';
 import { initBundledSkills } from './skills/bundled/index.js';
+import { initializeMemorySystem } from './memdir/MemoryManager.js';
+import { initCuratorAgent } from './skills/CuratorAgent.js';
+import { initAutonomousSkillCreation } from './skills/AutonomousSkillCreation.js';
 import type { AgentColorName } from './tools/AgentTool/agentColorManager.js';
 import { getActiveAgentsFromList, getAgentDefinitionsWithOverrides, isBuiltInAgent, isCustomAgent, parseAgentsFromJson } from './tools/AgentTool/loadAgentsDir.js';
 import type { LogOption } from './types/logs.js';
@@ -1923,6 +1926,15 @@ async function run(): Promise<CommanderCommand> {
     if (process.env.CLAUDE_CODE_ENTRYPOINT !== 'local-agent') {
       initBuiltinPlugins();
       initBundledSkills();
+      // Initialize memory providers and curator agent (fire-and-forget)
+      void initializeMemorySystem().catch(err => {
+        logForDebugging(
+          `[MemoryManager] Failed to initialize memory system: ${errorMessage(err)}`,
+          { level: 'error' },
+        );
+      });
+      initCuratorAgent();
+      initAutonomousSkillCreation();
     }
     const setupPromise = setup(preSetupCwd, permissionMode, allowDangerouslySkipPermissions, worktreeEnabled, worktreeName, tmuxEnabled, sessionId ? validateUuid(sessionId) : undefined, worktreePRNumber, messagingSocketPath);
     const commandsPromise = worktreeEnabled ? null : getCommands(preSetupCwd);

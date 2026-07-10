@@ -45,6 +45,9 @@ const extractMemoriesModule = feature('EXTRACT_MEMORIES')
 const jobClassifierModule = feature('TEMPLATES')
   ? (require('../jobs/classifier.js') as typeof import('../jobs/classifier.js'))
   : null
+const curatorAgentModule = feature('tengu_curator_agent')
+  ? (require('../skills/CuratorAgent.js') as typeof import('../skills/CuratorAgent.js'))
+  : null
 
 /* eslint-enable @typescript-eslint/no-require-imports */
 
@@ -153,6 +156,20 @@ export async function* handleStopHooks(
     }
     if (!toolUseContext.agentId) {
       void executeAutoDream(stopHookContext, toolUseContext.appendSystemMessage)
+    }
+    // Run curator agent after long sessions to maintain skill library
+    // Only on main thread, fire-and-forget
+    if (feature('tengu_curator_agent') && !toolUseContext.agentId) {
+      void curatorAgentModule!
+        .runCuratorAgent(
+          stopHookContext.canUseTool,
+          stopHookContext,
+        )
+        .catch(err => {
+          logForDebugging(`[CuratorAgent] error: ${errorMessage(err)}`, {
+            level: 'error',
+          })
+        })
     }
   }
 

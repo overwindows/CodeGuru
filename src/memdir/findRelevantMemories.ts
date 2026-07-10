@@ -9,6 +9,7 @@ import {
   type MemoryHeader,
   scanMemoryFiles,
 } from './memoryScan.js'
+import { getMemoryManager } from './MemoryManager.js'
 
 export type RelevantMemory = {
   path: string
@@ -18,7 +19,7 @@ export type RelevantMemory = {
 const SELECT_MEMORIES_SYSTEM_PROMPT = `You are selecting memories that will be useful to Claude Code as it processes a user's query. You will be given the user's query and a list of available memory files with their filenames and descriptions.
 
 Return a list of filenames for the memories that will clearly be useful to Claude Code as it processes the user's query (up to 5). Only include memories that you are certain will be helpful based on their name and description.
-- If you are unsure if a memory will be useful in processing the user's query, then do not include it in your list. Be selective and discerning.
+- If you are unsure if a memory will be useful in processing the user's query, then do not include it in the list. Be selective and discerning.
 - If there are no memories in the list that would clearly be useful, feel free to return an empty list.
 - If a list of recently-used tools is provided, do not select memories that are usage reference or API documentation for those tools (Claude Code is already exercising them). DO still select memories containing warnings, gotchas, or known issues about those tools — active use is exactly when those matter.
 `
@@ -35,6 +36,9 @@ Return a list of filenames for the memories that will clearly be useful to Claud
  * `alreadySurfaced` filters paths shown in prior turns before the
  * Sonnet call, so the selector spends its 5-slot budget on fresh
  * candidates instead of re-picking files the caller will discard.
+ *
+ * Uses MemoryManager when available for provider abstraction, falls back
+ * to direct file scanning for backward compatibility.
  */
 export async function findRelevantMemories(
   query: string,
@@ -43,6 +47,29 @@ export async function findRelevantMemories(
   recentTools: readonly string[] = [],
   alreadySurfaced: ReadonlySet<string> = new Set(),
 ): Promise<RelevantMemory[]> {
+  // Try MemoryManager first when it has providers initialized
+  try {
+    const memoryManager = getMemoryManager()
+    if (memoryManager.providers.length > 0) {
+      const entries = await memoryManager.findRelevantMemories(query, {
+        limit: 5,
+        signal,
+        recentTools,
+      })
+      // Filter out already surfaced and convert to RelevantMemory format
+      return entries
+        .filter(e => !alreadySurfaced.has(e.filePath))
+        .map(e => ({ path: e.filePath, mtimeMs: e.mtimeMs }))
+    }
+  } catch (e) {
+    // MemoryManager not available or not initialized, fall back to direct scan
+    logForDebugging(
+      `[findRelevantMemories] MemoryManager not available, falling back to file scan: ${errorMessage(e)}`,
+      { level: 'warn' },
+    )
+  }
+
+  // Fallback: direct file scan (original behavior)
   const memories = (await scanMemoryFiles(memoryDir, signal)).filter(
     m => !alreadySurfaced.has(m.filePath),
   )
