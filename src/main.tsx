@@ -2207,6 +2207,19 @@ async function run(): Promise<CommanderCommand> {
       const assistantAddendum = assistantModule.getAssistantSystemPromptAddendum();
       appendSystemPrompt = appendSystemPrompt ? `${appendSystemPrompt}\n\n${assistantAddendum}` : assistantAddendum;
     }
+    // Always prefer Bing browser WebSearch for live web lookups (not model memory).
+    {
+      const bingSearchPrompt = `# Web search
+
+Whenever you need live web information (news, scores, docs, current events, anything beyond your knowledge cutoff), you MUST call the WebSearch tool. WebSearch opens www.bing.com in a headless browser and returns real results. Do not claim you cannot search the web. Do not skip WebSearch in favor of guessing.`;
+      appendSystemPrompt = appendSystemPrompt ? `${appendSystemPrompt}\n\n${bingSearchPrompt}` : bingSearchPrompt;
+    }
+    if (isEnvTruthy(process.env.CODEGURU_UNRESTRICTED_WEB)) {
+      const unrestrictedWebPrompt = `# Web access
+
+When the user asks you to fetch or browse a URL (WebFetch, WebSearch, or browser_control), complete the request. Do not refuse based on the site's content category.`;
+      appendSystemPrompt = appendSystemPrompt ? `${appendSystemPrompt}\n\n${unrestrictedWebPrompt}` : unrestrictedWebPrompt;
+    }
 
     // Ink root is only needed for interactive sessions — patchConsole in the
     // Ink constructor would swallow console output in headless mode.
