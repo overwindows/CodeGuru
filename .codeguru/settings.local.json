@@ -215,6 +215,7 @@
       "Bash(grep -r \"LogoV2\\\\|logo\" /nvmedata/chenw/CodeGuru/src --include=*.tsx --include=*.ts -l)",
       "Bash(find /nvmedata/chenw/CodeGuru -type f -iname *welcome*)",
       "Bash(grep -r \"WelcomeV2\\\\|LogoV2\" /nvmedata/chenw/CodeGuru/src --include=*.tsx --include=*.ts)",
+<<<<<<< HEAD
       "Bash(mkdir -p Papers Contracts Screenshots Documents Others)",
       "Bash(mv *Cluster* *Context* *Uncertainty* *Beyond* acl19irc.pdf *Article* fa0e60fc* 铜陵* Papers/)",
       "Bash(mv *Contract* *NDA* *Personnel* *Receipt* Documents/)",
@@ -274,6 +275,13 @@
       "Read(//Users/chenwu/Downloads/Apps/**)",
       "Read(//Users/chenwu/Downloads/Images/**)",
       "Read(//Users/chenwu/Downloads/Travel/**)"
+=======
+      "WebFetch(domain:github.sambanovasystems.com)",
+      "Read(//import/ml-sc-scratch1/chenw/mtp/**)",
+      "Bash(for branch:*)",
+      "Bash(do git:*)",
+      "Bash(grep -rn \"verify\\\\|speculat\" --include=*.py finalized_mtp_infra/inference/)"
+>>>>>>> fb20cfb42f0f1e06198de33460198c274848a335
     ]
   }
 }

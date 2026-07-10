@@ -32,6 +32,7 @@ import type {
 } from '../services/mcp/types.js'
 import { GLOB_TOOL_NAME } from 'src/tools/GlobTool/prompt.js'
 import { GREP_TOOL_NAME } from 'src/tools/GrepTool/prompt.js'
+import { WEB_SEARCH_TOOL_NAME } from 'src/tools/WebSearchTool/prompt.js'
 import { hasEmbeddedSearchTools } from 'src/utils/embeddedTools.js'
 import { ASK_USER_QUESTION_TOOL_NAME } from '../tools/AskUserQuestionTool/prompt.js'
 import {
@@ -308,6 +309,9 @@ function getUsingYourToolsSection(enabledTools: Set<string>): string {
       ? `Break down and manage your work with the ${taskToolName} tool. These tools are helpful for planning your work and helping the user track your progress. Mark each task as completed as soon as you are done with the task. Do not batch up multiple tasks before marking them as completed.`
       : null,
     `You can call multiple tools in a single response. If you intend to call multiple tools and there are no dependencies between them, make all independent tool calls in parallel. Maximize use of parallel tool calls where possible to increase efficiency. However, if some tool calls depend on previous calls to inform dependent values, do NOT call these tools in parallel and instead call them sequentially. For instance, if one operation must complete before another starts, run these operations sequentially instead.`,
+    enabledTools.has(WEB_SEARCH_TOOL_NAME)
+      ? `Use the ${WEB_SEARCH_TOOL_NAME} tool proactively and on your own initiative whenever your knowledge may be insufficient or outdated — do NOT wait for the user to ask you to search. Specifically, you MUST use ${WEB_SEARCH_TOOL_NAME} when: (1) the topic involves recent releases, versions, APIs, or announcements that may postdate your training cutoff; (2) the user asks about something you don't recognise or are uncertain about; (3) the question involves fast-moving areas (AI/ML frameworks, cloud services, security advisories, package ecosystems). If you answer from memory and later realise the information may be stale, search immediately and correct yourself.`
+      : null,
   ].filter(item => item !== null)
 
   return [`# Using your tools`, ...prependBullets(items)].join(`\n`)
