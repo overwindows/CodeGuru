@@ -3,7 +3,7 @@
  *
  * Based on Hermes Agent's Curator agent patterns.
  * Handles skill archival, restoration, usage tracking, and metadata management.
- * Metadata stored in .codeguru/skills/.metadata/
+ * Metadata stored in ~/.codeguru/skills/.metadata/
  */
 
 import type {
@@ -14,13 +14,12 @@ import type {
 } from './skillStates.js'
 import { createDefaultLifecycleState, isSkillStale } from './skillStates.js'
 import { join } from 'path'
-import { readFile, writeFile, readdir, mkdir, unlink } from 'fs/promises'
-import { getCwd } from '../utils/cwd.js'
+import { readFile, writeFile, readdir, unlink } from 'fs/promises'
+import { getCodeGuruConfigHomeDir } from '../utils/envUtils.js'
 import { getFsImplementation } from '../utils/fsOperations.js'
 import { logForDebugging } from '../utils/debug.js'
 import { isENOENT } from '../utils/errors.js'
 
-const SKILL_METADATA_DIR = '.codeguru'
 const SKILLS_METADATA_SUBDIR = 'skills/.metadata'
 
 export class SkillLifecycleManager {
@@ -30,9 +29,11 @@ export class SkillLifecycleManager {
 
   /**
    * Get the metadata directory path.
+   * Uses the CodeGuru config home directory, not cwd, so metadata
+   * is stored consistently regardless of where CodeGuru is run from.
    */
   private getMetadataDir(): string {
-    return join(getCwd(), SKILL_METADATA_DIR, SKILLS_METADATA_SUBDIR)
+    return join(getCodeGuruConfigHomeDir(), SKILLS_METADATA_SUBDIR)
   }
 
   /**
