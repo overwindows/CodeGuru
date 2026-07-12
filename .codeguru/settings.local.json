@@ -227,7 +227,10 @@
       "Bash(find /Users/chenwu/CodeGuru -type d -name hermes*)",
       "Bash(find /Users/chenwu/CodeGuru/skills/hermes-port -name *.md)",
       "Bash(grep -r -i \"bing\\\\|web.search\\\\|web_search\" /Users/chenwu/CodeGuru/skills/hermes-port/ --include=*.md)",
-      "Bash(find /Users/chenwu/CodeGuru/skills/hermes-port -type f -name *.py)"
+      "Bash(find /Users/chenwu/CodeGuru/skills/hermes-port -type f -name *.py)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:hermes-agent.nousresearch.com)",
+      "Bash(grep -l 'satisfies ToolDef' /Users/chenwu/CodeGuru/src/tools/*/*.ts)"
     ]
   }
 }

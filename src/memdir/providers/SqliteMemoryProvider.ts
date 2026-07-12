@@ -126,50 +126,7 @@ export class SqliteMemoryProvider implements MemoryProvider {
         END
       `)
 
-      // Create skill tracking tables
-      db.run(`
-        CREATE TABLE IF NOT EXISTS skill_usage (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          skill_name TEXT NOT NULL,
-          invoked_at INTEGER NOT NULL,
-          success INTEGER,
-          feedback TEXT
-        )
-      `)
-
-      db.run(`
-        CREATE TABLE IF NOT EXISTS skill_improvements (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          skill_name TEXT NOT NULL,
-          section TEXT NOT NULL,
-          change TEXT NOT NULL,
-          reason TEXT,
-          applied_at INTEGER NOT NULL,
-          reverted_at INTEGER
-        )
-      `)
-
-      db.run(`
-        CREATE TABLE IF NOT EXISTS skill_states (
-          skill_name TEXT PRIMARY KEY,
-          state TEXT NOT NULL DEFAULT 'active',
-          archived_at INTEGER,
-          archive_reason TEXT,
-          usage_count INTEGER DEFAULT 0,
-          last_used_at INTEGER
-        )
-      `)
-
-      // Index for skill_usage.skill_name
-      db.run(`
-        CREATE INDEX IF NOT EXISTS idx_skill_usage_skill_name ON skill_usage(skill_name)
-      `)
-
-      // Index for skill_states.last_used_at
-      db.run(`
-        CREATE INDEX IF NOT EXISTS idx_skill_states_last_used ON skill_states(last_used_at)
-      `)
-
+      
       this.db = db
       this.initialized = true
       logForDebugging(`[SqliteMemoryProvider] Initialized at ${this.dbPath}`)
@@ -359,57 +316,6 @@ export class SqliteMemoryProvider implements MemoryProvider {
 
   async ensureDir(): Promise<void> {
     // Directory is created in constructor
-  }
-
-  // --- Skill lifecycle tracking methods ---
-
-  async recordSkillUsage(skillName: string, success: boolean, feedback?: string): Promise<void> {
-    this.ensureInitialized()
-    this.db!.run(`
-      INSERT INTO skill_usage (skill_name, invoked_at, success, feedback)
-      VALUES (?, ?, ?, ?)
-    `, skillName, Date.now(), success ? 1 : 0, feedback)
-
-    // Update skill usage count
-    this.db!.run(`
-      INSERT INTO skill_states (skill_name, usage_count, last_used_at)
-      VALUES (?, 1, ?)
-      ON CONFLICT(skill_name) DO UPDATE SET
-        usage_count = usage_count + 1,
-        last_used_at = ?
-    `, skillName, Date.now(), Date.now())
-  }
-
-  async archiveSkill(skillName: string, reason: string): Promise<void> {
-    this.ensureInitialized()
-    this.db!.run(`
-      UPDATE skill_states SET state = 'archived', archived_at = ?, archive_reason = ?
-      WHERE skill_name = ?
-    `, Date.now(), reason, skillName)
-  }
-
-  async getSkillState(skillName: string): Promise<{ state: string; usageCount: number; lastUsedAt: number | null } | null> {
-    this.ensureInitialized()
-    const row = this.db!.query(`
-      SELECT state, usage_count, last_used_at FROM skill_states WHERE skill_name = ?
-    `).get(skillName) as { state: string; usage_count: number; last_used_at: number | null } | undefined
-
-    return row
-      ? { state: row.state, usageCount: row.usage_count, lastUsedAt: row.last_used_at }
-      : null
-  }
-
-  async recordSkillImprovement(
-    skillName: string,
-    section: string,
-    change: string,
-    reason: string
-  ): Promise<void> {
-    this.ensureInitialized()
-    this.db!.run(`
-      INSERT INTO skill_improvements (skill_name, section, change, reason, applied_at)
-      VALUES (?, ?, ?, ?, ?)
-    `, skillName, section, change, reason, Date.now())
   }
 
   private ensureInitialized(): void {

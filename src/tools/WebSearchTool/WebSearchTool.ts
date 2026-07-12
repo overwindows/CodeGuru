@@ -22,6 +22,7 @@ import {
   renderToolUseProgressMessage,
 } from './UI.js'
 import { isBingSearchEnabled, searchWithBing } from './bingSearch.js'
+import { getActiveProviderName, searchWithProvider } from './searchProviders.js'
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
@@ -259,22 +260,23 @@ export const WebSearchTool = buildTool({
     const startTime = performance.now()
     const { query } = input
 
-    // Always use Bing browser search when enabled (default).
-    // This is the required path for every WebSearch call unless explicitly disabled.
-    if (isBingSearchEnabled()) {
+    // Use pluggable search provider (Bing, Firecrawl, Tavily, Exa, or Parallel).
+    // Provider is selected based on available API keys in priority order.
+    const providerName = getActiveProviderName()
+    if (isBingSearchEnabled() || providerName !== 'bing') {
       if (onProgress) {
         onProgress({
-          toolUseID: 'bing-search-progress-1',
+          toolUseID: 'search-progress-1',
           data: { type: 'query_update', query },
         })
       }
-      const bing = await searchWithBing(query, context.abortController.signal)
+      const searchResult = await searchWithProvider(query, context.abortController.signal)
       if (onProgress) {
         onProgress({
-          toolUseID: 'bing-search-progress-2',
+          toolUseID: 'search-progress-2',
           data: {
             type: 'search_results_received',
-            resultCount: bing.hits.length,
+            resultCount: searchResult.hits.length,
             query,
           },
         })
@@ -283,10 +285,10 @@ export const WebSearchTool = buildTool({
       const data: Output = {
         query,
         results: [
-          bing.summary,
+          searchResult.summary,
           {
-            tool_use_id: 'bing-browser-search',
-            content: bing.hits,
+            tool_use_id: `${providerName}-search`,
+            content: searchResult.hits,
           },
         ],
         durationSeconds,

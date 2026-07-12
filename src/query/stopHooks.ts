@@ -48,6 +48,17 @@ const jobClassifierModule = feature('TEMPLATES')
 const curatorAgentModule = feature('tengu_curator_agent')
   ? (require('../skills/CuratorAgent.js') as typeof import('../skills/CuratorAgent.js'))
   : null
+const autonomousSkillCreationModule = feature('tengu_autonomous_skills')
+  ? (require('../skills/AutonomousSkillCreation.js') as typeof import('../skills/AutonomousSkillCreation.js'))
+  : null
+
+// Initialize curator agent and autonomous skill creation at startup (when feature is enabled)
+if (feature('tengu_curator_agent') && curatorAgentModule) {
+  curatorAgentModule.initCuratorAgent()
+}
+if (feature('tengu_autonomous_skills') && autonomousSkillCreationModule) {
+  autonomousSkillCreationModule.initAutonomousSkillCreation()
+}
 
 /* eslint-enable @typescript-eslint/no-require-imports */
 
@@ -170,6 +181,19 @@ export async function* handleStopHooks(
             level: 'error',
           })
         })
+    }
+
+    // Surface skill creation suggestions from autonomous detection
+    if (feature('tengu_autonomous_skills') && !toolUseContext.agentId) {
+      const suggestionPrompt = autonomousSkillCreationModule!.buildSkillCreationPrompt()
+      if (suggestionPrompt) {
+        toolUseContext.appendSystemMessage?.({
+          type: 'system',
+          subtype: 'skill-creation-suggestion',
+          content: suggestionPrompt,
+        })
+        autonomousSkillCreationModule!.clearAllSkillSuggestions()
+      }
     }
   }
 

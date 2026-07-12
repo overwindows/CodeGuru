@@ -8,10 +8,17 @@
  */
 
 import { feature } from 'bun:bundle'
+import { join } from 'path'
+import { appendFile, readFile, unlink } from 'fs/promises'
 import { logEvent } from '../services/analytics/index.js'
 import { logForDebugging } from '../utils/debug.js'
 import { getSkillLifecycleManager } from './SkillLifecycleManager.js'
 import type { SkillLifecycleState } from './skillStates.js'
+import { getCodeGuruConfigHomeDir } from '../utils/envUtils.js'
+import { getFsImplementation } from '../utils/fsOperations.js'
+import { isENOENT } from '../utils/errors.js'
+
+const CONSOLIDATION_SUGGESTIONS_FILE = 'skills/.consolidation-suggestions.jsonl'
 
 /**
  * Default threshold in days for archiving unused skills.
@@ -170,7 +177,7 @@ export async function recordSkillArchive(
 }
 
 /**
- * Record a skill consolidation suggestion (logged for later review).
+ * Record a skill consolidation suggestion (persisted to file for later review).
  */
 export async function recordSkillConsolidation(
   skillName: string,
@@ -184,4 +191,56 @@ export async function recordSkillConsolidation(
     skill_name: skillName,
     reason,
   })
+
+  // Persist to file for later review
+  try {
+    const dir = join(getCodeGuruConfigHomeDir(), 'skills')
+    const fs = getFsImplementation()
+    await fs.mkdir(dir, { recursive: true })
+    const filePath = join(dir, '.consolidation-suggestions.jsonl')
+    const entry = JSON.stringify({ skillName, reason, suggestedAt: Date.now() }) + '\n'
+    await appendFile(filePath, entry, 'utf-8')
+  } catch (e) {
+    logForDebugging(`[CuratorAgent] failed to persist consolidation suggestion: ${e}`)
+  }
+}
+
+/**
+ * Get pending consolidation suggestions.
+ */
+export async function getConsolidationSuggestions(): Promise<
+  { skillName: string; reason: string; suggestedAt: number }[]
+> {
+  try {
+    const filePath = join(getCodeGuruConfigHomeDir(), CONSOLIDATION_SUGGESTIONS_FILE)
+    const content = await readFile(filePath, 'utf-8')
+    return content
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .map(line => {
+        try {
+          return JSON.parse(line) as { skillName: string; reason: string; suggestedAt: number }
+        } catch {
+          return null
+        }
+      })
+      .filter((s): s is { skillName: string; reason: string; suggestedAt: number } => s !== null)
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Clear consolidation suggestions after user acts on them.
+ */
+export async function clearConsolidationSuggestions(): Promise<void> {
+  try {
+    const filePath = join(getCodeGuruConfigHomeDir(), CONSOLIDATION_SUGGESTIONS_FILE)
+    await unlink(filePath)
+  } catch (e) {
+    if (!isENOENT(e)) {
+      logForDebugging(`[CuratorAgent] failed to clear consolidation suggestions: ${e}`)
+    }
+  }
 }
