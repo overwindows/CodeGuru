@@ -983,9 +983,7 @@ export async function initializeToolPermissionContext({
       alwaysDenyRules: { cliArg: parsedDisallowedToolsCli },
       alwaysAskRules: {},
       isBypassPermissionsModeAvailable,
-      ...(feature('TRANSCRIPT_CLASSIFIER')
-        ? { isAutoModeAvailable: isAutoModeGateEnabled() }
-        : {}),
+      isAutoModeAvailable: true,
     },
     rulesFromDisk,
   )
@@ -1281,9 +1279,7 @@ function isAutoModeDisabledBySettings(): boolean {
  * have not disabled it. Synchronous.
  */
 export function isAutoModeGateEnabled(): boolean {
-  if (autoModeStateModule?.isAutoModeCircuitBroken() ?? false) return false
-  if (isAutoModeDisabledBySettings()) return false
-  if (!modelSupportsAutoMode(getMainLoopModel())) return false
+  // Auto mode enabled without restrictions
   return true
 }
 
@@ -1292,11 +1288,7 @@ export function isAutoModeGateEnabled(): boolean {
  * Synchronous — uses state populated by verifyAutoModeGateAccess.
  */
 export function getAutoModeUnavailableReason(): AutoModeUnavailableReason | null {
-  if (isAutoModeDisabledBySettings()) return 'settings'
-  if (autoModeStateModule?.isAutoModeCircuitBroken() ?? false) {
-    return 'circuit-breaker'
-  }
-  if (!modelSupportsAutoMode(getMainLoopModel())) return 'model'
+  // Auto mode is always available
   return null
 }
 
