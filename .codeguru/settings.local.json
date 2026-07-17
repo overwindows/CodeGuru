@@ -230,7 +230,21 @@
       "Bash(find /Users/chenwu/CodeGuru/skills/hermes-port -type f -name *.py)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:hermes-agent.nousresearch.com)",
-      "Bash(grep -l 'satisfies ToolDef' /Users/chenwu/CodeGuru/src/tools/*/*.ts)"
+      "Bash(grep -l 'satisfies ToolDef' /Users/chenwu/CodeGuru/src/tools/*/*.ts)",
+      "Read(//import/**)",
+      "Read(//import/ml-sc-scratch1/mengmengj/LongBench/**)",
+      "Read(//import/ml-sc-scratch1/mengmengj/condaenvs/test1/lib/python3.10/site-packages/lmms_eval/tasks/videomme/**)",
+      "Read(//import/ml-sc-scratch1/mengmengj/condaenvs/test1/lib/python3.10/site-packages/lmms_eval/tasks/chartqa/**)",
+      "Read(//import/ml-sc-scratch1/chenw/LongBench/**)",
+      "Read(//import/ml-sc-scratch1/chenw/data/**)",
+      "Read(//import/ml-sc-scratch1/chenw/dataset_cache/**)",
+      "Bash(while read:*)",
+      "Bash(python3:*)",
+      "Bash(python3.11 --version)",
+      "Bash(/opt/local_python/bin/python3.11 << 'PYEOF'\nimport yaml, re\nimport numpy as np\nfrom datasets import load_dataset\n\ndef anls_score\\(str1, str2\\):\n    s1 = str1.lower\\(\\).strip\\(\\)\n    s2 = str2.lower\\(\\).strip\\(\\)\n    if len\\(s1\\) == 0 and len\\(s2\\) == 0:\n        return 1.0\n    if len\\(s1\\) == 0 or len\\(s2\\) == 0:\n        return 0.0\n    dp = [[0] * \\(len\\(s2\\) + 1\\) for _ in range\\(len\\(s1\\) + 1\\)]\n    for i in range\\(len\\(s1\\) + 1\\):\n        dp[i][0] = i\n    for j in range\\(len\\(s2\\) + 1\\):\n        dp[0][j] = j\n    for i in range\\(1, len\\(s1\\) + 1\\):\n        for j in range\\(1, len\\(s2\\) + 1\\):\n            cost = 0 if s1[i-1] == s2[j-1] else 1\n            dp[i][j] = min\\(dp[i-1][j] + 1, dp[i][j-1] + 1, dp[i-1][j-1] + cost\\)\n    ed = dp[len\\(s1\\)][len\\(s2\\)]\n    return 1.0 - min\\(ed / max\\(len\\(s1\\), len\\(s2\\)\\), 1.0\\)\n\nds = load_dataset\\('EtashGuha/JapaneseDocQA', split='test'\\)\n\ncompletions = {}\nwith open\\('/import/snvm-sc-podscratch4/weip/fast-coe/scripts/test_20260715_133824_jdocvqa.log'\\) as f:\n    for line in f:\n        if 'Completion: ' in line and '\"name\": \"IDC_DEBUG\"' in line and 'request_id' in line:\n            try:\n                d = yaml.safe_load\\(line\\)\n                msg = d['msg']\n                req_match = re.match\\(r'request_id: \\(.*\\)\\\\-\\([0-9]+\\)\\\\. Completion', msg\\)\n                if req_match:\n                    rid = int\\(req_match.group\\(2\\)\\)\n                    comp = msg.split\\('Completion: '\\)[-1]\n                    completions[rid] = comp\n            except:\n                pass\n\nanls_scores = []\nfor i in range\\(len\\(ds\\)\\):\n    if i in completions:\n        pred = completions[i]\n        gt = ds[i]['original_answer']\n        score = anls_score\\(gt, pred\\)\n        anls_scores.append\\(\\(i, score, gt, pred\\)\\)\n    else:\n        anls_scores.append\\(\\(i, 0.0, ds[i]['original_answer'], '<MISSING>'\\)\\)\n\nanls_scores.sort\\(key=lambda x: x[1]\\)\n\nprint\\(\"=== WORST 20 by ANLS ===\"\\)\nfor i, score, gt, pred in anls_scores[:20]:\n    print\\(f\"\\\\n[Example {i}] ANLS={score:.4f}\"\\)\n    print\\(f\"  GT \\({len\\(gt\\)} chars\\): {gt[:200]}\"\\)\n    print\\(f\"  PRED \\({len\\(pred\\)} chars\\): {pred[:200]}\"\\)\n\nprint\\(f\"\\\\n=== Stats ===\"\\)\nzero = [x for x in anls_scores if x[1] == 0]\nnon_zero_scores = [x[1] for x in anls_scores if x[1] > 0]\nprint\\(f\"Total: {len\\(anls_scores\\)}\"\\)\nprint\\(f\"Zero ANLS: {len\\(zero\\)}\"\\)\nprint\\(f\"Non-zero ANLS: {len\\(non_zero_scores\\)}\"\\)\nall_scores = [x[1] for x in anls_scores]\nprint\\(f\"Mean ANLS: {np.mean\\(all_scores\\):.4f}\"\\)\nif non_zero_scores:\n    print\\(f\"Mean ANLS \\(non-zero\\): {np.mean\\(non_zero_scores\\):.4f}\"\\)\nperfect = [x for x in anls_scores if x[1] >= 0.99]\nprint\\(f\"Perfect \\(ANLS>=0.99\\): {len\\(perfect\\)}\"\\)\n\n# Show distribution\nprint\\(\"\\\\n=== ANLS Distribution ===\"\\)\nfor bucket in [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]:\n    count = len\\([x for x in anls_scores if bucket <= x[1] < bucket + 0.1]\\)\n    if bucket < 1.0:\n        print\\(f\"  {bucket:.1f}-{bucket+0.1:.1f}: {count}\"\\)\n    else:\n        count = len\\([x for x in anls_scores if x[1] >= 1.0]\\)\n        print\\(f\"  1.0+: {count}\"\\)\nPYEOF)",
+      "Bash(/opt/local_python/bin/lmms-eval --version)",
+      "Read(//opt/local_python/bin/**)",
+      "Bash(python3.11 -c \"import numpy; print\\(numpy.__version__\\)\" 2>&1)"
     ]
   }
 }
