@@ -21,6 +21,8 @@ import {
   renderToolUseMessage,
   renderToolUseProgressMessage,
 } from './UI.js'
+import { isBingSearchEnabled, searchWithBing } from './bingSearch.js'
+import { getActiveProviderName, searchWithProvider } from './searchProviders.js'
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
@@ -166,15 +168,19 @@ export const WebSearchTool = buildTool({
     return summary ? `Searching for ${summary}` : 'Searching the web'
   },
   isEnabled() {
+    // Always available: Bing browser search works with any chat provider.
+    // Opt out with CODEGURU_DISABLE_BING_SEARCH=1 (then Anthropic/Vertex only).
+    if (isBingSearchEnabled()) {
+      return true
+    }
+
     const provider = getAPIProvider()
     const model = getMainLoopModel()
 
-    // Enable for firstParty
     if (provider === 'firstParty') {
       return true
     }
 
-    // Enable for Vertex AI with supported models (Claude 4.0+)
     if (provider === 'vertex') {
       const supportsWebSearch =
         model.includes('claude-opus-4') ||
@@ -184,7 +190,6 @@ export const WebSearchTool = buildTool({
       return supportsWebSearch
     }
 
-    // Foundry only ships models that already support Web Search
     if (provider === 'foundry') {
       return true
     }
@@ -254,6 +259,44 @@ export const WebSearchTool = buildTool({
   async call(input, context, _canUseTool, _parentMessage, onProgress) {
     const startTime = performance.now()
     const { query } = input
+
+    // Use pluggable search provider (Bing, Firecrawl, Tavily, Exa, or Parallel).
+    // Provider is selected based on available API keys in priority order.
+    const providerName = getActiveProviderName()
+    if (isBingSearchEnabled() || providerName !== 'bing') {
+      if (onProgress) {
+        onProgress({
+          toolUseID: 'search-progress-1',
+          data: { type: 'query_update', query },
+        })
+      }
+      const searchResult = await searchWithProvider(query, context.abortController.signal)
+      if (onProgress) {
+        onProgress({
+          toolUseID: 'search-progress-2',
+          data: {
+            type: 'search_results_received',
+            resultCount: searchResult.hits.length,
+            query,
+          },
+        })
+      }
+      const durationSeconds = (performance.now() - startTime) / 1000
+      const data: Output = {
+        query,
+        results: [
+          searchResult.summary,
+          {
+            tool_use_id: `${providerName}-search`,
+            content: searchResult.hits,
+          },
+        ],
+        durationSeconds,
+      }
+      return { data }
+    }
+
+    // Legacy Anthropic server-side web_search only when Bing is disabled.
     const userMessage = createUserMessage({
       content: 'Perform a web search for the query: ' + query,
     })

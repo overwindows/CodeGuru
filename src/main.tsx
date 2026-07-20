@@ -96,6 +96,9 @@ import { checkQuotaStatus } from './services/claudeAiLimits.js';
 import { getMcpToolsCommandsAndResources, prefetchAllMcpResources } from './services/mcp/client.js';
 import { VALID_INSTALLABLE_SCOPES, VALID_UPDATE_SCOPES } from './services/plugins/pluginCliCommands.js';
 import { initBundledSkills } from './skills/bundled/index.js';
+import { initializeMemorySystem } from './memdir/MemoryManager.js';
+import { initCuratorAgent } from './skills/CuratorAgent.js';
+import { initAutonomousSkillCreation } from './skills/AutonomousSkillCreation.js';
 import type { AgentColorName } from './tools/AgentTool/agentColorManager.js';
 import { getActiveAgentsFromList, getAgentDefinitionsWithOverrides, isBuiltInAgent, isCustomAgent, parseAgentsFromJson } from './tools/AgentTool/loadAgentsDir.js';
 import type { LogOption } from './types/logs.js';
@@ -1923,6 +1926,15 @@ async function run(): Promise<CommanderCommand> {
     if (process.env.CLAUDE_CODE_ENTRYPOINT !== 'local-agent') {
       initBuiltinPlugins();
       initBundledSkills();
+      // Initialize memory providers and curator agent (fire-and-forget)
+      void initializeMemorySystem().catch(err => {
+        logForDebugging(
+          `[MemoryManager] Failed to initialize memory system: ${errorMessage(err)}`,
+          { level: 'error' },
+        );
+      });
+      initCuratorAgent();
+      initAutonomousSkillCreation();
     }
     const setupPromise = setup(preSetupCwd, permissionMode, allowDangerouslySkipPermissions, worktreeEnabled, worktreeName, tmuxEnabled, sessionId ? validateUuid(sessionId) : undefined, worktreePRNumber, messagingSocketPath);
     const commandsPromise = worktreeEnabled ? null : getCommands(preSetupCwd);
@@ -2206,6 +2218,19 @@ async function run(): Promise<CommanderCommand> {
     if (feature('KAIROS') && kairosEnabled && assistantModule) {
       const assistantAddendum = assistantModule.getAssistantSystemPromptAddendum();
       appendSystemPrompt = appendSystemPrompt ? `${appendSystemPrompt}\n\n${assistantAddendum}` : assistantAddendum;
+    }
+    // Always prefer Bing browser WebSearch for live web lookups (not model memory).
+    {
+      const bingSearchPrompt = `# Web search
+
+Whenever you need live web information (news, scores, docs, current events, anything beyond your knowledge cutoff), you MUST call the WebSearch tool. WebSearch opens www.bing.com in a headless browser and returns real results. Do not claim you cannot search the web. Do not skip WebSearch in favor of guessing.`;
+      appendSystemPrompt = appendSystemPrompt ? `${appendSystemPrompt}\n\n${bingSearchPrompt}` : bingSearchPrompt;
+    }
+    if (isEnvTruthy(process.env.CODEGURU_UNRESTRICTED_WEB)) {
+      const unrestrictedWebPrompt = `# Web access
+
+When the user asks you to fetch or browse a URL (WebFetch, WebSearch, or browser_control), complete the request. Do not refuse based on the site's content category.`;
+      appendSystemPrompt = appendSystemPrompt ? `${appendSystemPrompt}\n\n${unrestrictedWebPrompt}` : unrestrictedWebPrompt;
     }
 
     // Ink root is only needed for interactive sessions — patchConsole in the
