@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git fetch *)",
+      "Bash(git pull *)",
+      "Bash(git push *)",
+      "Bash(git config *)",
+      "Read(//home/chenw/.ssh/**)",
+      "Bash(ssh -o StrictHostKeyChecking=no -o ConnectTimeout=8 -T git@github.sambanovasystems.com)",
+      "Bash(npm ls *)",
+      "Read(//home/chenw/.bun/bin/**)"
+    ]
+  }
+}

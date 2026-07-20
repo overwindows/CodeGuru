@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CodeGuru</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <div class="brand-icon">CG</div>
+          <div>
+            <h1>CodeGuru</h1>
+            <p>Agentic coding assistant</p>
+          </div>
+        </div>
+
+        <div class="status-card">
+          <div class="status-row">
+            <strong>Agent CLI</strong>
+            <span>
+              {% if status.cli_available %}
+                <span class="badge ok">Ready</span>
+              {% else %}
+                <span class="badge warn">Fallback LLM</span>
+              {% endif %}
+            </span>
+          </div>
+          <div class="status-row">
+            <strong>Model</strong>
+            <span>{{ status.model or 'not configured' }}</span>
+          </div>
+          <div class="status-row">
+            <strong>Workspace</strong>
+            <span>{{ status.agent_cwd }}</span>
+          </div>
+          <div class="status-row">
+            <strong>Mode</strong>
+            <span>{{ status.web_mode }}</span>
+          </div>
+          <div class="status-row">
+            <strong>Permissions</strong>
+            <span>{{ status.permission_mode }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-body">
+        <section class="chat-history-panel" aria-label="Chat history">
+          <div class="chat-history-header">
+            <h2>Chats</h2>
+            <button type="button" class="chat-history-new" id="new-chat-button" title="New chat">
+              + New
+            </button>
+          </div>
+          <div class="chat-history-list" id="chat-history-list">
+            <div class="chat-history-empty" id="chat-history-empty">
+              Previous chats appear here.
+            </div>
+          </div>
+        </section>
+
+        <section class="tool-activity-panel" aria-label="Tool activity">
+          <div class="tool-activity-header">
+            <h2>Tool activity</h2>
+            <span class="tool-activity-count" id="tool-activity-count">0</span>
+          </div>
+          <p class="tool-activity-hint">
+            Live log of agent tools — Bash, Grep, Glob, Read, and more.
+          </p>
+          <div class="tool-activity-list" id="tool-activity-list">
+            <div class="tool-activity-empty" id="tool-activity-empty">
+              No tools run yet this session.
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <nav class="sidebar-footer nav-links">
+        <a class="active" href="{{ url_for('chat_page') }}">Chat</a>
+        <a href="{{ url_for('legacy_page') }}">Quick tasks</a>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <header class="chat-header">
+        <h2>Chat with CodeGuru</h2>
+        <p>
+          {% if status.web_mode == 'agent' %}
+            Same CodeGuru CLI agent as the terminal — tools, prompts, and sessions under <code>~/.codeguru/</code>.
+          {% elif status.web_mode == 'llm' %}
+            CLI not available; using direct LLM fallback (no bash/edit tools).
+          {% elif status.web_mode == 'fixed' %}
+            Demo mode: fixed reply <code>{{ status.web_fixed_response }}</code>.
+          {% else %}
+            Install Bun + <code>npm install</code> in the repo, and configure <code>~/.codeguru/settings.json</code>.
+          {% endif %}
+        </p>
+      </header>
+
+      <div id="messages" class="messages">
+        <div class="empty-state" id="empty-state">
+          <h3>What would you like to build or fix?</h3>
+          <p>Ask CodeGuru to explore the codebase, implement features, run tests, or review changes.</p>
+        </div>
+      </div>
+
+      <div class="composer">
+        <form id="chat-form">
+          <textarea
+            id="prompt-input"
+            placeholder="Ask CodeGuru anything about your project…"
+            rows="2"
+            autofocus
+          ></textarea>
+          <button class="primary" id="send-button" type="submit">Send</button>
+          <button class="danger hidden" id="stop-button" type="button">Stop</button>
+        </form>
+        <p class="hint">
+          Uses permission mode <code>{{ status.permission_mode }}</code> from
+          <code>~/.codeguru/settings.json</code> (override with <code>CODEGURU_PERMISSION_MODE</code>).
+        </p>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    window.CODEGURU_STATUS = {{ status | tojson }};
+  </script>
+  <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "env": {
+    "CODEGURU_BASE_URL": "https://api.sambanova.ai/v1",
+    "CODEGURU_AUTH_TOKEN": "<your-api-key>",
+    "CODEGURU_MODEL": "MiniMax-M2.7",
+    "CODEGURU_DEFAULT_HAIKU_MODEL": "MiniMax-M2.7",
+    "CODEGURU_CODE_AUTO_COMPACT_WINDOW": "200000",
+    "CODEGURU_AUTOCOMPACT_PCT_OVERRIDE": "60",
+    "CODEGURU_UNRESTRICTED_WEB": "1",
+    "CODEGURU_SYSTEM_AS_USER": "1",
+    "CODEGURU_USE_BING_SEARCH": "1"
+  },
+  "skipWebFetchPreflight": true,
+  "theme": "auto"
+}

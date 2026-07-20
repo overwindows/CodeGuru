@@ -1,0 +1,152 @@
+{
+  "input": [
+    "say hi in 3 words\nimport subprocess\nfrom cli_env import subprocess_env\nenv = subprocess_env()\nenv[\"NODE_ENV\"] = \"test\"\nproc = subprocess.Popen(\n    [\"/opt/homebrew/bin/bun\", \"run\", \"[CWD]/src/entrypoints/cli.tsx\",\n     \"-p\", \"say hi in 3 words\", \"--verbose\", \"--output-format\", \"stream-json\",\n     \"--permission-mode\", \"acceptEdits\"],\n    cwd=\"[CWD]\", env=env,\n    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,\n)\ntry:\n    out, err = proc.communicate(timeout=45)\nexcept subprocess.TimeoutExpired:\n    proc.kill()\n    out, err = proc.communicate()\n    print(\"TIMEOUT\")\nprint(\"exit\", proc.returncode)\nfor line in (out or \"\").splitlines()[:8]:\n    print(\"OUT\", line[:120])\nfor line in (err or \"\").splitlines()[-5:]:\n    if \"threw\" in line or \"Error\" in line:\n        print(\"ERR\", line[:200])\n",
+    [
+      {
+        "type": "tool_use",
+        "id": "call_fa434770709e4c4eba",
+        "name": "Bash",
+        "input": {
+          "command": "NODE_ENV=test /opt/homebrew/bin/bun run [CWD]/src/entrypoints/cli.tsx -p \"say hi in 3 words\" --verbose --output-format stream-json --permission-mode acceptedEdits 2>&1 | head -20",
+          "timeout": 45000
+        }
+      }
+    ],
+    [
+      {
+        "type": "tool_result",
+        "content": "This Bash command contains multiple operations. The following part requires approval: NODE_ENV=test /opt/homebrew/bin/bun run [CWD]/src/entrypoints/cli.tsx -p \"say hi in 3 words\" --verbose --output-format stream-json --permission-mode acceptedEdits 2 >& 1",
+        "is_error": true,
+        "tool_use_id": "call_fa434770709e4c4eba"
+      }
+    ],
+    [
+      {
+        "type": "tool_use",
+        "id": "call_f04f669b67244126b8",
+        "name": "Bash",
+        "input": {
+          "command": "NODE_ENV=test /opt/homebrew/bin/bun run src/entrypoints/cli.tsx -p \"say hi in 3 words\" --verbose --output-format stream-json --permission-mode acceptedEdits 2>&1",
+          "timeout": 45000
+        }
+      }
+    ],
+    [
+      {
+        "type": "tool_result",
+        "content": "This command requires approval",
+        "is_error": true,
+        "tool_use_id": "call_f04f669b67244126b8"
+      }
+    ]
+  ],
+  "output": [
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "message_start",
+        "message": {
+          "id": "7b03b11c-b70c-4f2a-8133-d6108db3d1b9",
+          "type": "message",
+          "role": "assistant",
+          "content": [],
+          "model": "MiniMax-M2.7",
+          "stop_reason": null,
+          "stop_sequence": null,
+          "usage": {
+            "input_tokens": 7027,
+            "output_tokens": 0
+          }
+        }
+      },
+      "ttftMs": 2590
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_start",
+        "index": 0,
+        "content_block": {
+          "type": "text",
+          "text": ""
+        }
+      }
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": {
+          "type": "text_delta",
+          "text": "\n\nHello there!"
+        }
+      }
+    },
+    {
+      "uuid": "UUID-3",
+      "requestId": "REQUEST_ID",
+      "timestamp": "2026-06-16T00:32:00.041Z",
+      "message": {
+        "id": "7b03b11c-b70c-4f2a-8133-d6108db3d1b9",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "\n\nHello there!",
+            "citations": []
+          }
+        ],
+        "model": "MiniMax-M2.7",
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "usage": {
+          "input_tokens": 7027,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "",
+          "iterations": [],
+          "speed": "standard"
+        }
+      },
+      "type": "assistant"
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_stop",
+        "index": 0
+      }
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "message_delta",
+        "delta": {
+          "stop_reason": "end_turn",
+          "stop_sequence": null
+        },
+        "usage": {
+          "output_tokens": 0
+        }
+      }
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "message_stop"
+      }
+    }
+  ]
+}
