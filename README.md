@@ -11,6 +11,7 @@ This repository contains the **development tree** for local development. The app
 | `package.json`, `bunfig.toml`, `tsconfig.json` | Project configuration and tooling dependencies |
 | `src/` | TypeScript source code (CLI, services, tools) |
 | `scripts/install-linux.sh` | Automated installation script for macOS and Linux |
+| `scripts/install.ps1` | Automated installation script for Windows |
 
 ## Prerequisites
 
