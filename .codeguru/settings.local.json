@@ -99,7 +99,13 @@
       "Bash(npm link:*)",
       "Bash(codeguru --version)",
       "Bash(npm unlink:*)",
-      "Bash(/root/.local/bin/codeguru --version)"
+      "Bash(/root/.local/bin/codeguru --version)",
+      "Bash(echo $PATH)",
+      "Bash(npm list:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(codeguru --update)",
+      "Bash(/root/.local/bin/codeguru --update 2>&1)",
+      "Bash(grep -r 0.0.1-beta /nvmedata/chenw/CodeGuru --include=*.json --include=*.ts --include=*.tsx)"
     ]
   }
 }
