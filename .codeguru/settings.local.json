@@ -214,7 +214,17 @@
       "Bash(find /nvmedata/chenw/CodeGuru -type f -iname *logo*)",
       "Bash(grep -r \"LogoV2\\\\|logo\" /nvmedata/chenw/CodeGuru/src --include=*.tsx --include=*.ts -l)",
       "Bash(find /nvmedata/chenw/CodeGuru -type f -iname *welcome*)",
-      "Bash(grep -r \"WelcomeV2\\\\|LogoV2\" /nvmedata/chenw/CodeGuru/src --include=*.tsx --include=*.ts)"
+      "Bash(grep -r \"WelcomeV2\\\\|LogoV2\" /nvmedata/chenw/CodeGuru/src --include=*.tsx --include=*.ts)",
+      "Bash(find /nvmedata/chenw/CodeGuru/src -type f -name *.ts -o -name *.tsx -o -name *.js -o -name *.json)",
+      "Bash(grep -r query.tx /nvmedata/chenw/CodeGuru/src --include=*.ts --include=*.tsx -l)",
+      "Bash(find /nvmedata/chenw/CodeGuru/src -name systemPrompt* -o -name *system*prompt*)",
+      "Bash(find /nvmedata/chenw/CodeGuru/src -type f -name *.ts -exec grep -l \"plan\\\\|think\\\\|strategy\" /nvmedata/chenw/CodeGuru/src/{})",
+      "Bash(find /nvmedata/chenw/CodeGuru/src -name *.txt -o -name *.md)",
+      "Bash(grep -r \"think\\\\|plan\\\\|strategy\" /nvmedata/chenw/CodeGuru/src/tools --include=*.ts -l)",
+      "Bash(grep -r \"before.*tool\\\\|first.*plan\\\\|plan.*first\" /nvmedata/chenw/CodeGuru/src --include=*.ts -l)",
+      "Bash(grep -r \"auto.*mode\\\\|autoMode\\\\|AUTO_MODE\" /nvmedata/chenw/CodeGuru/src --include=*.ts -l)",
+      "Bash(find /nvmedata/chenw/CodeGuru/src -name *auto* -type f)",
+      "Bash(find /nvmedata/chenw/CodeGuru/src -name *yolo* -o -name *classifier*)"
     ]
   }
 }
