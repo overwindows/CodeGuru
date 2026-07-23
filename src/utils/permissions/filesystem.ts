@@ -66,6 +66,7 @@ export const DANGEROUS_FILES = [
   '.ripgreprc',
   '.mcp.json',
   '.claude.json',
+  '.codeguru.json',
 ] as const
 
 /**

@@ -263,6 +263,7 @@ import { useNpmDeprecationNotification } from 'src/hooks/notifs/useNpmDeprecatio
 import { useIDEStatusIndicator } from 'src/hooks/notifs/useIDEStatusIndicator.js';
 import { useModelMigrationNotifications } from 'src/hooks/notifs/useModelMigrationNotifications.js';
 import { useCanSwitchToExistingSubscription } from 'src/hooks/notifs/useCanSwitchToExistingSubscription.js';
+import { useConsolidationSuggestionsNotification } from 'src/hooks/notifs/useConsolidationSuggestionsNotification.js';
 import { useTeammateLifecycleNotification } from 'src/hooks/notifs/useTeammateShutdownNotification.js';
 import { useFastModeNotification } from 'src/hooks/notifs/useFastModeNotification.js';
 import { AutoRunIssueNotification, shouldAutoRunIssue, getAutoRunIssueReasonText, getAutoRunCommand, type AutoRunIssueReason } from '../utils/autoRunIssue.js';
@@ -763,6 +764,7 @@ export function REPL({
   useAntOrgWarningNotification();
   useInstallMessages();
   useChromeExtensionNotification();
+  useConsolidationSuggestionsNotification();
   useOfficialMarketplaceNotification();
   useLspInitializationNotification();
   useTeammateLifecycleNotification();

@@ -48,7 +48,7 @@ function Ensure-Bun {
     return
   }
 
-  Write-Info "Bun not found — installing..."
+  Write-Info "Bun not found - installing..."
   if (Test-Command winget) {
     winget install Oven-sh.Bun --accept-package-agreements --accept-source-agreements
   } else {
@@ -60,15 +60,6 @@ function Ensure-Bun {
   Write-Ok "[ok] Bun $(bun --version)"
 }
 
-function Install-NpmDeps {
-  Set-Location $RepoRoot
-  Write-Info "Installing npm dependencies..."
-  npm install --legacy-peer-deps
-  Write-Info "Pinning React 19 packages..."
-  npm install react@^19.0.0 react-reconciler@0.34.0-canary-ed69815c-20260323 --legacy-peer-deps
-  Write-Ok "[ok] Dependencies installed"
-}
-
 function Ensure-Settings {
   if (Test-Path $SettingsFile) {
     Write-Ok "[ok] Settings already exist at $SettingsFile"
@@ -76,7 +67,7 @@ function Ensure-Settings {
   }
   New-Item -ItemType Directory -Path $SettingsDir -Force | Out-Null
   Copy-Item $ExampleSettings $SettingsFile
-  Write-Ok "[ok] Created $SettingsFile from template — edit and add your API key"
+  Write-Ok "[ok] Created $SettingsFile from template - edit and add your API key"
 }
 
 Write-Info "CodeGuru install (Windows)"
@@ -89,7 +80,12 @@ if (-not (Test-Path (Join-Path $RepoRoot 'package.json'))) {
 
 Ensure-Node
 Ensure-Bun
-Install-NpmDeps
+Set-Location $RepoRoot
+Write-Info "Installing npm dependencies..."
+npm install --legacy-peer-deps
+Write-Info "Pinning React 19 packages..."
+npm install react@^19.0.0 react-reconciler@0.34.0-canary-ed69815c-20260323 --legacy-peer-deps
+Write-Ok "[ok] Dependencies installed"
 Ensure-Settings
 
 Write-Host ""

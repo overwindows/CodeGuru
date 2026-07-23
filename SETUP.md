@@ -103,6 +103,21 @@ Copy from `scripts/settings.example.json` or use:
 
 All `CODEGURU_*` keys are bridged to `ANTHROPIC_*` / `CLAUDE_*` at runtime. Any OpenAI-compatible provider works: set `CODEGURU_BASE_URL` (include `/v1`), `CODEGURU_AUTH_TOKEN`, and `CODEGURU_MODEL`.
 
+**Web search with Bing browser (recommended for SambaNova/MiniMax):** Anthropic-style `WebSearch` needs Anthropic’s server tool. With an OpenAI-compatible chat provider, CodeGuru opens **www.bing.com** with the **browser tool (Playwright)** and extracts results (RSS fallback if Chromium is missing):
+
+```json
+"CODEGURU_USE_BING_SEARCH": "1"
+```
+
+Requires Playwright Chromium once:
+
+```bash
+npm install --legacy-peer-deps
+bunx playwright install chromium
+```
+
+Set `CODEGURU_DISABLE_BING_SEARCH=1` to turn this off. Chat still uses SambaNova/MiniMax; only search uses Bing via the browser.
+
 **Anthropic API key (alternative):**
 
 ```bash

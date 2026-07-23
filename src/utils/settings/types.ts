@@ -652,6 +652,12 @@ export const SettingsSchema = lazySchema(() =>
         .describe(
           'Skip the WebFetch blocklist check for enterprise environments with restrictive security policies',
         ),
+      memoryProvider: z
+        .enum(['file', 'sqlite'])
+        .optional()
+        .describe(
+          'Memory backend: file-based (default) or SQLite FTS5 full-text search',
+        ),
       sandbox: SandboxSettingsSchema().optional(),
       feedbackSurveyRate: z
         .number()
