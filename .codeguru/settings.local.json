@@ -91,7 +91,15 @@
       "Bash(find /Users/chenwu/CodeGuru/skills/hermes-port -type f -name *.py)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:hermes-agent.nousresearch.com)",
-      "Bash(grep -l 'satisfies ToolDef' /Users/chenwu/CodeGuru/src/tools/*/*.ts)"
+      "Bash(grep -l 'satisfies ToolDef' /Users/chenwu/CodeGuru/src/tools/*/*.ts)",
+      "Bash(INSTALL_MODE=system ./scripts/install-linux.sh)",
+      "Bash(npm install:*)",
+      "Bash(conda activate:*)",
+      "Bash(source /root/miniconda3/etc/profile.d/conda.sh)",
+      "Bash(npm link:*)",
+      "Bash(codeguru --version)",
+      "Bash(npm unlink:*)",
+      "Bash(/root/.local/bin/codeguru --version)"
     ]
   }
 }
