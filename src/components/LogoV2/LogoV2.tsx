@@ -278,7 +278,7 @@ export function LogoV2() {
     }
     let t12;
     if ($[34] === Symbol.for("react.memo_cache_sentinel")) {
-      t12 = null;
+      t12 = <Box marginY={1} />;
       $[34] = t12;
     } else {
       t12 = $[34];
@@ -369,7 +369,7 @@ export function LogoV2() {
   }
   let t19;
   if ($[48] === Symbol.for("react.memo_cache_sentinel")) {
-    t19 = null;
+    t19 = <></>;
     $[48] = t19;
   } else {
     t19 = $[48];
