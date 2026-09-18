@@ -562,6 +562,87 @@ async function translateStreamResponse(
   })
 }
 
+function translateNonStreamResponseToStream(
+  oai: OpenAIResponse,
+  originalModel: string,
+  estimatedInputTokens: number,
+): Response {
+  const choice = oai.choices[0]
+  const message = choice?.message
+  const state = {
+    messageStarted: false,
+    inputTokens: oai.usage?.prompt_tokens ?? estimatedInputTokens,
+    contentIndex: 0,
+    toolCallIndex: new Map<number, number>(),
+    toolCallIds: new Map<number, string>(),
+    toolCallNames: new Map<number, string>(),
+  }
+  const chunks: string[] = []
+  const appendChunk = (chunk: Parameters<typeof translateStreamChunk>[0]) => {
+    chunks.push(...translateStreamChunk(chunk, state))
+  }
+
+  appendChunk({
+    id: oai.id,
+    model: originalModel,
+    choices: [{ index: choice?.index ?? 0, delta: {} }],
+  })
+
+  if (message?.content) {
+    appendChunk({
+      id: oai.id,
+      model: originalModel,
+      choices: [
+        {
+          index: choice?.index ?? 0,
+          delta: { content: message.content },
+        },
+      ],
+    })
+  }
+
+  if (message?.tool_calls?.length) {
+    appendChunk({
+      id: oai.id,
+      model: originalModel,
+      choices: [
+        {
+          index: choice?.index ?? 0,
+          delta: {
+            tool_calls: message.tool_calls.map((toolCall, index) => ({
+              index,
+              id: toolCall.id,
+              type: toolCall.type,
+              function: toolCall.function,
+            })),
+          },
+        },
+      ],
+    })
+  }
+
+  appendChunk({
+    id: oai.id,
+    model: originalModel,
+    choices: [
+      {
+        index: choice?.index ?? 0,
+        delta: {},
+        finish_reason: choice?.finish_reason ?? 'stop',
+      },
+    ],
+    usage: oai.usage,
+  })
+
+  return new Response(chunks.join(''), {
+    status: 200,
+    headers: {
+      'content-type': 'text/event-stream',
+      'cache-control': 'no-cache',
+    },
+  })
+}
+
 // ---------------------------------------------------------------------------
 // Main fetch interceptor
 // ---------------------------------------------------------------------------
@@ -620,6 +701,13 @@ export function wrapFetchWithOpenAICompat(inner: FetchFn): FetchFn {
 
     // Translate to OpenAI format
     const openAIBody = buildOpenAIRequest(anthropicBody)
+    const isStreaming = anthropicBody.stream === true
+    const useNonStreamingUpstream =
+      isStreaming &&
+      isEnvTruthy(process.env.CODEGURU_OPENAI_COMPAT_DISABLE_STREAMING)
+    if (useNonStreamingUpstream) {
+      openAIBody.stream = false
+    }
 
     // Build the OpenAI URL: replace /v1/messages → /v1/chat/completions
     const oaiUrl = url.replace(/\/v1\/messages(\?.*)?$/, '/v1/chat/completions')
@@ -635,8 +723,6 @@ export function wrapFetchWithOpenAICompat(inner: FetchFn): FetchFn {
     headers.delete('x-app')
     headers.delete('x-claude-code-session-id')
 
-    const isStreaming = anthropicBody.stream === true
-
     const oaiResponse = await inner(oaiUrl, {
       ...init,
       method: 'POST',
@@ -650,6 +736,14 @@ export function wrapFetchWithOpenAICompat(inner: FetchFn): FetchFn {
     }
 
     if (isStreaming) {
+      if (useNonStreamingUpstream) {
+        const oaiJson = (await oaiResponse.json()) as OpenAIResponse
+        return translateNonStreamResponseToStream(
+          oaiJson,
+          anthropicBody.model,
+          estimateTokens(anthropicBody),
+        )
+      }
       return translateStreamResponse(
         oaiResponse,
         anthropicBody.model,
