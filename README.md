@@ -78,6 +78,25 @@ This repository contains the **development tree** for local development. The app
    bun run dev
    ```
 
+   To start a session in autopilot mode:
+   ```bash
+   bun run dev --autopilot
+   ```
+
+   Autopilot directs CodeGuru to continue through implementation and
+   verification without stopping for optional decisions or permission
+   confirmations. Explicit deny rules and tools that inherently require user
+   interaction remain enforced. You can select it interactively with
+   **Shift+Tab**. To make it the startup mode, add this to your user settings:
+
+   ```json
+   {
+     "permissions": {
+       "defaultMode": "autopilot"
+     }
+   }
+   ```
+
 4. Verify environment setup:
    ```bash
    bun run check-env

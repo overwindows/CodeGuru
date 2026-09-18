@@ -16,7 +16,7 @@ import { AGENT_COLOR_TO_THEME_COLOR } from '../../tools/AgentTool/agentColorMana
 import { logForDebugging } from '../../utils/debug.js';
 import { execFileNoThrow } from '../../utils/execFileNoThrow.js';
 import { truncateToWidth } from '../../utils/format.js';
-import { getNextPermissionMode } from '../../utils/permissions/getNextPermissionMode.js';
+import { getNextExternalPermissionMode } from '../../utils/permissions/getNextPermissionMode.js';
 import { getModeColor, type PermissionMode, permissionModeFromString, permissionModeSymbol } from '../../utils/permissions/PermissionMode.js';
 import { jsonStringify } from '../../utils/slowOperations.js';
 import { IT2_COMMAND, isInsideTmuxSync } from '../../utils/swarm/backends/detection.js';
@@ -669,7 +669,7 @@ function cycleTeammateMode(teammate: TeammateStatus, teamName: string, isBypassA
     mode: currentMode,
     isBypassPermissionsModeAvailable: isBypassAvailable
   };
-  const nextMode = getNextPermissionMode(context);
+  const nextMode = getNextExternalPermissionMode(context);
   sendModeChangeToTeammate(teammate.name, teamName, nextMode);
 }
 
@@ -685,7 +685,7 @@ function cycleAllTeammateModes(teammates: TeammateStatus[], teamName: string, is
   const allSame = modes.every(m => m === modes[0]);
 
   // Determine target mode for all teammates
-  const targetMode = !allSame ? 'default' : getNextPermissionMode({
+  const targetMode = !allSame ? 'default' : getNextExternalPermissionMode({
     ...getEmptyToolPermissionContext(),
     mode: modes[0] ?? 'default',
     isBypassPermissionsModeAvailable: isBypassAvailable
