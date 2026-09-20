@@ -39,6 +39,8 @@ class Store:
         self.tasks: dict[str, dict] = {}           # id -> task
         self.state: dict[str, dict] = {}           # key -> {value, by, ts}
         self.polls: dict[str, list[threading.Event]] = {}  # name -> waiters
+        self.interrupts: dict[str, dict] = {}    # name -> {reason, by, ts}
+        self._ver: int = 0                       # monotonic CAS version counter
         self.logs: list[str] = []
 
     # -- persistence ------------------------------------------------------
@@ -76,7 +78,13 @@ class Store:
         for k, v in d.items():
             self.inboxes[k] = v; self.by_id.update({m["id"]: m for m in v})
     def _ld_tasks(self, d): self.tasks = {k: v for k, v in d.items()}
-    def _ld_state(self, d): self.state = {k: v for k, v in d.items()}
+    def _ld_state(self, d):
+        self.state = {k: v for k, v in d.items()}
+        # advance the version counter past every loaded version so new writes
+        # can never collide with versions already in the persisted state
+        for e in self.state.values():
+            if isinstance(e, dict) and isinstance(e.get("ver"), int):
+                self._ver = max(self._ver, e["ver"])
 
     def persist(self):
         if not self.state_dir:
@@ -109,6 +117,7 @@ class Store:
                 self.by_id.pop(m["id"], None)
             for ev in self.polls.pop(name, []):
                 ev.set()  # release any long-poll waiter holding the name
+            self.interrupts.pop(name, None)
             self.persist()
             return True
 
@@ -148,11 +157,17 @@ class Store:
             ev.set()
 
     def poll_pending(self, name):
-        """Return leftover messages and a fresh Event to wait on."""
+        """Return leftover messages, any pending interrupt, and a fresh
+        Event to wait on. If either is already present the waiter returns
+        immediately without blocking."""
         with self.lock:
             pending = list(self.inboxes.get(name, []))
+            intr = self.drain_interrupt(name)
             self.polls.setdefault(name, []).append(threading.Event())
-            return pending, self.polls[name][-1]
+            ev = self.polls[name][-1]
+            if pending or intr:
+                ev.set()  # make wait() return at once; caller drains below
+            return pending, intr, ev
 
     def done_polling(self, name, ev):
         with self.lock:
@@ -160,6 +175,30 @@ class Store:
                 self.polls.setdefault(name, []).remove(ev)
             except ValueError:
                 pass
+
+    # -- interrupt ---------------------------------------------------------
+    def interrupt(self, name, reason="", by="anon"):
+        """Flag `name` to be steered at its next inbox delivery.
+
+        The flag is delivered (and cleared) on the next poll/recv for that
+        name, so a working agent is interrupted at its nearest step boundary
+        rather than mid-action. Wake any waiting long-poller so an idle agent
+        sees it immediately.
+        """
+        with self.lock:
+            entry = {"reason": reason, "by": by, "ts": _now()}
+            self.interrupts[name] = entry
+            self._wake(name)
+            self.persist()
+            return entry
+
+    def drain_interrupt(self, name):
+        """Return and clear any pending interrupt flag for `name`."""
+        with self.lock:
+            entry = self.interrupts.pop(name, None)
+            if entry:
+                self.persist()
+            return entry
 
     # -- tasks ------------------------------------------------------------
     def post_task(self, task):
@@ -196,16 +235,35 @@ class Store:
             return True
 
     # -- state ------------------------------------------------------------
-    def set_state(self, key, value, by="anon"):
+    def set_state(self, key, value, by="anon", expect=None):
+        """Write a shared key. `expect` enables compare-and-set: if given and
+        it doesn't match the current entry's `ver`, the write is rejected
+        (returns (None, current)) so a coordinated objective isn't blindly
+        overwritten by a stale view. Versions are unique per write (monotonic),
+        so two writes in the same second never collide."""
         with self.lock:
-            self.state[key] = {"key": key, "value": value, "by": by, "ts": _now()}
+            cur = self.state.get(key)
+            cur_ver = cur.get("ver") if cur else None
+            if expect is not None and cur_ver != expect:
+                return None, cur
+            self._ver += 1
+            entry = {"key": key, "value": value, "by": by, "ts": _now(),
+                     "ver": self._ver}
+            self.state[key] = entry
             self.persist()
-            return self.state[key]
+            return entry, cur
 
     def get_state(self, key):
         with self.lock:
             v = self.state.get(key)
             return v["value"] if v else None
+
+    def state_ver(self, key):
+        """Return the current CAS version (`ver`) of a key, or None if unset
+        (e.g. a legacy key written before versions existed)."""
+        with self.lock:
+            v = self.state.get(key)
+            return v.get("ver") if v else None
 
     def all_state(self):
         with self.lock:
@@ -270,24 +328,31 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/recv":
             name = q.get("name", [""])[0]
             clear = q.get("clear", ["0"])[0] in ("1", "true")
-            return self._json({"messages": st.recv(name, clear)})
+            intr = st.drain_interrupt(name)
+            return self._json({"messages": st.recv(name, clear), "interrupt": intr})
         if path == "/state/get":
-            return self._json({"value": st.get_state(q.get("key", [""])[0])})
+            key = q.get("key", [""])[0]
+            if q.get("v", ["0"])[0] in ("1", "true"):
+                return self._json({"value": st.get_state(key),
+                                   "ver": st.state_ver(key)})
+            return self._json({"value": st.get_state(key)})
         return self._json({"error": "not found"}, 404)
 
     def _poll(self, q):
         name = q.get("name", [""])[0]
         timeout = float(q.get("timeout", ["10"])[0])
         st = self.store
-        pending, ev = st.poll_pending(name)
-        # drain messages that were waiting before we subscribed
-        if pending:
+        pending, intr, ev = st.poll_pending(name)
+        # if a message or interrupt is already waiting, return immediately
+        if pending or intr:
             st.done_polling(name, ev)
-            return self._json({"messages": pending})
+            msgs = st.recv(name, clear=True)
+            return self._json({"messages": msgs, "interrupt": intr})
         ev.wait(timeout)
         st.done_polling(name, ev)
         msgs = st.recv(name, clear=True)
-        return self._json({"messages": msgs})
+        intr = st.drain_interrupt(name)
+        return self._json({"messages": msgs, "interrupt": intr})
 
     def do_POST(self):
         u = urlparse(self.path)
@@ -304,6 +369,12 @@ class Handler(BaseHTTPRequestHandler):
             if not name:
                 return self._json({"error": "name required"}, 400)
             return self._json({"removed": st.deregister(name)})
+        if path == "/interrupt":
+            if not name:
+                return self._json({"error": "name required"}, 400)
+            return self._json({"interrupt": st.interrupt(name,
+                                                         body.get("reason", ""),
+                                                         sender)})
         if path == "/send":
             return self._json({"id": st.send(body.get("to", ""), payload,
                                              body.get("subject", ""), sender)})
@@ -317,8 +388,12 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({"ok": st.task_done(body.get("id", ""),
                                                   body.get("result"))})
         if path == "/state/set":
-            return self._json({"state": st.set_state(body.get("key", ""),
-                                                     body.get("value"), sender)})
+            entry, cur = st.set_state(body.get("key", ""), body.get("value"),
+                                      sender, body.get("expect"))
+            if entry is None:
+                return self._json({"error": "conflict", "current_ver": cur.get("ver") if cur else None,
+                                   "hint": "set_state requires expect=<current ver>"}, 409)
+            return self._json({"state": entry, "ver": entry["ver"]})
         if path == "/log":
             return self._json({"lines": st.log(body.get("line", ""), sender)})
         return self._json({"error": "not found"}, 404)

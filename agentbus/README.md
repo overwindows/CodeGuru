@@ -84,6 +84,7 @@ python client.py --name worker-a --agents
 | Send another agent a message | `python client.py --name worker-a --send research-b "need your notes"` |
 | Check your inbox | `python client.py --name worker-a --recv` |
 | Block for new mail (real-time) | `python client.py --name worker-a --wait 30` |
+| Steer a colleague (next delivery) | `python client.py --name worker-a --interrupt worker-b "recheck the numbers"` |
 | Post a task to the shared queue | `python client.py --name worker-a --post-task "summarize the notes"` |
 | Claim a task to work on | `python -c "from client import AgentClient; print(AgentClient('worker-a').claim())"` |
 | Read shared state | `python client.py --name worker-a --state-get phase` |
@@ -116,6 +117,39 @@ python research_loop.py --name worker-a --once              # one pass, then exi
   logic — it can reply on the bus).
 - Incoming **tasks** (posted via `--post-task` or `agent_post_task`) are claimed
   atomically and run to completion.
+
+### Steer a colleague (interrupt) & lock a shared value (compare-and-set)
+
+Two primitives that make coordination safer than fire-and-forget messages alone:
+
+**Interrupt** — a *steer, not a stop*: `POST /interrupt {name, reason}` queues a
+flag that is handed to agent `name` at its **next** recv/wait delivery, then cleared.
+It does not block the agent mid-action or kill its state — the agent sees
+`interrupt = {reason, by, ts}` (in `recv_ex`/`wait_ex`, or `agent_wait` via MCP) at
+its nearest step boundary and chooses how to react.
+
+```bash
+python client.py --name worker-a --interrupt worker-b "recheck the numbers"
+```
+
+```python
+msgs, intr = c.wait_ex(timeout=30)     # instead of c.wait()
+if intr: print("steered:", intr["reason"])   # react at a clean boundary
+```
+
+**Compare-and-set (CAS)** — shared state is latest-wins by default, but when a key
+is a *coordinated objective* (two agents must not blindly clobber each other), pass
+the version you believe is current. The write succeeds only if nothing changed since:
+
+```python
+ver = c.get_state_ver("kb.phase")      # current version, or None
+try:
+    c.set_state("kb.phase", "review", expect=ver)
+except Conflict:
+    ... # someone else wrote first — re-read and decide, don't overwrite
+```
+
+A stale `expect` returns HTTP 409 (`Conflict` in Python, `{conflict:true}` via MCP).
 
 ### Housekeeping — keep the roster clean
 
@@ -232,11 +266,12 @@ python demo_worker.py --name worker-b
 | POST | `/send` | `{to, payload, subject}` → route a message |
 | GET | `/recv?name=X` | drain an inbox (non-blocking) |
 | GET | `/poll?name=X&timeout=N` | long-poll for new messages |
+| POST | `/interrupt` | `{name, reason}` → steer an agent at its next delivery |
 | POST | `/post-task` | `{payload:{…}}` → enqueue work |
 | POST | `/claim` | `{worker}` → atomically claim one open task |
 | POST | `/task-done` | `{id, result}` → complete a claimed task |
-| POST | `/state/set` | `{key, value}` → latest-wins scratchboard |
-| GET | `/state/get?key=K` | read a shared value |
+| POST | `/state/set` | `{key, value, expect?}` → scratchboard (CAS if `expect` given) |
+| GET | `/state/get?key=K&v=1` | read a value (`v=1` also returns `ver` for CAS) |
 | GET | `/state` | dump all shared state |
 | POST | `/log` | `{line}` → append to the team log |
 
@@ -265,6 +300,10 @@ over each other. **Every session should follow them.**
   `subject="research"` request) — don't start new unrelated threads.
 - **Fire-and-forget by default; confirm only when it matters.** For critical work use
   the task queue (has a result channel) rather than relying on a mailbox reply.
+- **Prefer `interrupt` over messages for course-correction.** A message asks a
+  colleague to *do* something; an interrupt *steers* them at their next delivery
+  (e.g. "stop, the input changed"). Deliver it to their next step boundary — don't
+  rely on them reading it the moment you send it.
 - **Don't spam.** If you need to re-ask, wait a beat or use the queue; a mailbox with a
   flood of retries is a smell.
 
@@ -291,6 +330,9 @@ the lifecycle:
 - **Latest-wins is a contract, not a bug.** Shared state is a scratchboard, not a
   source of truth — persist authoritative records in files, mirror the *pointer/progress*
   on the bus.
+- **Use compare-and-set for coordinated objectives.** When two agents might touch the
+  same key and a stale write would corrupt an objective, read `get_state_ver`, then write
+  with `expect`. On `Conflict`, re-read and decide — never blind-overwrite.
 - **Only the owning agent writes its domain keys.** If another agent needs to update a
   key it doesn't own, ask via message, don't overwrite.
 - **Write distinct output paths.** Each agent renders results to its own
@@ -367,6 +409,7 @@ Tools exposed:
 | `agent_send(name, to, payload, subject?)` | route a message |
 | `agent_recv(name)` | drain inbox (non-blocking) |
 | `agent_wait(name, timeout?)` | long-poll for new mail (real-time) |
+| `agent_interrupt(name, to, reason?)` | steer another agent at its next delivery |
 | `agent_post_task(name, task)` | enqueue work |
 | `agent_claim(name)` | atomically claim one task |
 | `agent_task_done(name, id, result?)` | complete a task |

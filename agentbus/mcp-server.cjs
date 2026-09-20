@@ -41,7 +41,11 @@ async function post(path, body, timeout = 30000) {
       body: JSON.stringify(body),
       signal: ctl.signal,
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status} from ${path}`);
+    if (!res.ok) {
+      const err = new Error(`HTTP ${res.status} from ${path}`);
+      err.status = res.status;
+      throw err;
+    }
     return await res.json();
   } finally {
     clearTimeout(t);
@@ -95,12 +99,13 @@ async function handleToolCall(name, args) {
     case "agent_wait": {
       const { name: who, timeout = 10 } = args;
       requireArgs({ name: who });
-      // long-poll for up to `timeout` seconds for new mail (real-time push)
+      // long-poll for up to `timeout` seconds for new mail (real-time push);
+      // also delivers any pending interrupt flag at the next step boundary
       const r = await get(
         `/poll?name=${encodeURIComponent(who)}&timeout=${Number(timeout)}`,
         Number(timeout) + 5
       );
-      return text(JSON.stringify(r.messages || []));
+      return text(JSON.stringify({ messages: r.messages || [], interrupt: r.interrupt || null }));
     }
 
     // -- task queue ------------------------------------------------------
@@ -125,18 +130,37 @@ async function handleToolCall(name, args) {
       return text(JSON.stringify({ ok: r.ok }));
     }
 
+    // -- interrupt -------------------------------------------------------
+    case "agent_interrupt": {
+      const { name: who, to, reason = "" } = args;
+      requireArgs({ name: who, to });
+      const r = await post("/interrupt", { from: who, name: to, reason });
+      return text(`interrupt queued for "${to}" (ts=${r.interrupt.ts})`);
+    }
+
     // -- shared state ----------------------------------------------------
     case "agent_set_state": {
-      const { name: who, key, value } = args;
+      const { name: who, key, value, expect } = args;
       requireArgs({ name: who, key, value });
-      const r = await post("/state/set", { from: who, key, value });
-      return text(`set state[${key}]`);
+      let r;
+      try {
+        r = await post("/state/set", { from: who, key, value, expect });
+      } catch (e) {
+        if (e.status === 409) { // compare-and-set conflict
+          return text(JSON.stringify({ ok: false, conflict: true, key,
+                                       message: `state[${key}] changed by another writer` }));
+        }
+        throw e;
+      }
+      return text(`set state[${key}] ver=${r.ver}`);
     }
     case "agent_get_state": {
-      const { key } = args;
+      const { key, withVer = false } = args;
       requireArgs({ key });
-      const r = await get(`/state/get?key=${encodeURIComponent(key)}`);
-      return text(JSON.stringify(r.value));
+      const r = await get(`/state/get?key=${encodeURIComponent(key)}&v=${withVer ? 1 : 0}`);
+      return withVer
+        ? text(JSON.stringify({ value: r.value, ver: r.ver }))
+        : text(JSON.stringify(r.value));
     }
 
     // -- log -------------------------------------------------------------
@@ -177,8 +201,9 @@ const TOOL_DEFS = [
   { name: "agent_post_task", description: "Publish a unit of work to the shared task queue.", inputSchema: { type: "object", properties: { name: { type: "string" }, task: { type: "object" } }, required: ["name", "task"] } },
   { name: "agent_claim", description: "Atomically claim one open task (only one worker succeeds). Returns {claimed, task} or claimed:false.", inputSchema: { type: "object", properties: { name: { type: "string" } }, required: ["name"] } },
   { name: "agent_task_done", description: "Mark a claimed task complete with an optional result.", inputSchema: { type: "object", properties: { name: { type: "string" }, id: { type: "string" }, result: {} }, required: ["name", "id"] } },
-  { name: "agent_set_state", description: "Write a shared key/value (latest wins) visible to all agents.", inputSchema: { type: "object", properties: { name: { type: "string" }, key: { type: "string" }, value: {} }, required: ["name", "key", "value"] } },
-  { name: "agent_get_state", description: "Read a shared value by key.", inputSchema: { type: "object", properties: { key: { type: "string" } }, required: ["key"] } },
+  { name: "agent_set_state", description: "Write a shared key/value visible to all agents. Pass expect (from agent_get_state withVer=true) to compare-and-set: rejects if another writer changed it since.", inputSchema: { type: "object", properties: { name: { type: "string" }, key: { type: "string" }, value: {}, expect: {} }, required: ["name", "key", "value"] } },
+  { name: "agent_get_state", description: "Read a shared value by key. Pass withVer=true to also get the compare-and-set version (ver).", inputSchema: { type: "object", properties: { key: { type: "string" }, withVer: { type: "boolean" } }, required: ["key"] } },
+  { name: "agent_interrupt", description: "Ask the bus to steer agent `to` at its next delivery (does not block its current work mid-action; the flag is handed to it on its next recv/wait).", inputSchema: { type: "object", properties: { name: { type: "string" }, to: { type: "string" }, reason: { type: "string" } }, required: ["name", "to"] } },
   { name: "agent_log", description: "Append a line to the shared team log.", inputSchema: { type: "object", properties: { name: { type: "string" }, line: { type: "string" } }, required: ["name", "line"] } },
 ];
 
