@@ -6,3 +6,7 @@ node_modules/
 fixtures/*.json
 dist/codeguru
 .codeguru/settings.local.json
+knowledgebase/
+profiles/
+scripts/__pycache__/
+doca_full.txt
