@@ -108,6 +108,26 @@ This repository contains the **development tree** for local development. The app
 > fnm env --use-on-cd --shell powershell | Out-String | Invoke-Expression
 > ```
 
+## Customizations in this tree
+
+This is a personalized development tree on top of the upstream CodeGuru baseline.
+The following are local additions, separate from the `src/` harness:
+
+| Path | What it is |
+|------|------------|
+| `agentbus/` | **Multi-agent coordination service** (HTTP + long-poll daemon). Lets multiple CodeGuru sessions act as a coordinated team — message routing, per-agent inboxes, atomic task queue, shared state (with compare-and-set), team log, and an MCP bridge (`agent_*` tools). Stdlib-only, file-backed persistence (OneDrive-syncable). See its own `agentbus/README.md` for full docs. |
+| `knowledgebase/` | Chen's career/work knowledge base — mined from Teams / Outlook-Graph / SharePoint into structured `.md` files (`00_INDEX.md` + numbered sections). Queried via the `career-kb` skill. |
+| `profiles/` | Contact profiles (colleagues), each with private verdicts + relationship quality, grounded in real evidence. |
+| `skills/` | Custom skill packs (e.g. `hermes-port`), alongside the global `~/.codeguru/skills/`. |
+| `scripts/` | Personal automation: Outlook scraping (Graph + MAPI variants, `outlook_graph_*.py`), the `acronym_miner`, env-check tooling, and install/update helpers. |
+
+The bus is brought up with `python launcher.py` from `agentbus/` (or `npm run agentbus`);
+sessions then coordinate either via `client.py` or the native `agent_*` MCP tools. See
+`agentbus/README.md` for onboarding, behavior rules, and the API.
+
+> These additions are Chen's personal tooling, not part of the upstream harness. The
+> upstream install/quick-start instructions above still apply to the `src/` harness itself.
+
 ## Internal Packages
 
 Some modules depend on packages from Anthropic's internal npm registry that are not publicly available, including:
