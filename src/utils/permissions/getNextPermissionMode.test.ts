@@ -81,6 +81,18 @@ describe('getNextPermissionMode', () => {
     ).toBe('autopilot')
   })
 
+  test('keeps autopilot reachable in a normal session without bypass mode', () => {
+    const base = getEmptyToolPermissionContext()
+
+    expect(
+      getNextPermissionMode({
+        ...base,
+        mode: 'plan',
+        isBypassPermissionsModeAvailable: false,
+      }),
+    ).toBe('autopilot')
+  })
+
   test('Shift+Tab transitions activate and deactivate autopilot guidance', () => {
     const base = getEmptyToolPermissionContext()
     const entering = cyclePermissionMode({
