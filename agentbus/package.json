@@ -1,0 +1,13 @@
+{
+  "name": "codeguru-agentbus",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HTTP/long-poll service for coordinating multiple CodeGuru sessions, with an MCP bridge.",
+  "scripts": {
+    "agentbus": "python launcher.py",
+    "agentbus:start": "python launcher.py",
+    "agentbus:stop": "python launcher.py --stop",
+    "agentbus:check": "python launcher.py --check",
+    "agentbus:mcp": "node mcp-server.cjs"
+  }
+}

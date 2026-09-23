@@ -197,6 +197,22 @@ function translateMessagesToOpenAI(messages: AnthropicMessage[]): OpenAIMessage[
   return result
 }
 
+/**
+ * Detect whether any OpenAI-translated message carries image content. Text-only
+ * models (e.g. deepseek-v4-flash) cannot consume images, so the adapter can
+ * auto-route these requests to a multimodal model.
+ */
+function hasImageContent(messages: OpenAIMessage[]): boolean {
+  for (const msg of messages) {
+    if (Array.isArray(msg.content)) {
+      if (msg.content.some(p => p.type === 'image_url')) return true
+    } else if (typeof msg.content === 'string' && msg.content.startsWith('data:image/')) {
+      return true
+    }
+  }
+  return false
+}
+
 function buildOpenAIRequest(body: AnthropicRequest): Record<string, unknown> {
   const oaiMessages: OpenAIMessage[] = []
 
@@ -218,8 +234,20 @@ function buildOpenAIRequest(body: AnthropicRequest): Record<string, unknown> {
 
   oaiMessages.push(...translateMessagesToOpenAI(body.messages))
 
+  // Auto-route multimodal (image-bearing) requests to a vision-capable model.
+  // The default CODEGURU_OPENAI_COMPAT_VISION_MODEL defaults to qwen3.8-flash-next
+  // on the LLM router, which natively understands image content (text-only models
+  // like deepseek-v4-flash cannot). The response still reports the caller's
+  // original model, so the swap is transparent to the client.
+  let effectiveModel = body.model
+  const visionModel =
+    process.env.CODEGURU_OPENAI_COMPAT_VISION_MODEL?.trim() || 'qwen3.8-flash-next'
+  if (hasImageContent(oaiMessages) && visionModel && visionModel !== body.model) {
+    effectiveModel = visionModel
+  }
+
   const req: Record<string, unknown> = {
-    model: body.model,
+    model: effectiveModel,
     messages: oaiMessages,
   }
 
