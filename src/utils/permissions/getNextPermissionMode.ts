@@ -9,6 +9,7 @@ import {
 import {
   getAutoModeUnavailableReason,
   isAutoModeGateEnabled,
+  isBypassPermissionsModeDisabled,
   transitionPermissionMode,
 } from './permissionSetup.js'
 
@@ -32,6 +33,10 @@ function canCycleToAuto(ctx: ToolPermissionContext): boolean {
   return false
 }
 
+function canCycleToAutopilot(): boolean {
+  return !isBypassPermissionsModeDisabled()
+}
+
 /**
  * Determines the next permission mode when cycling through modes with Shift+Tab.
  */
@@ -49,9 +54,7 @@ export function getNextPermissionMode(
         if (canCycleToAuto(toolPermissionContext)) {
           return 'auto'
         }
-        return toolPermissionContext.isBypassPermissionsModeAvailable
-          ? 'autopilot'
-          : 'default'
+        return canCycleToAutopilot() ? 'autopilot' : 'default'
       }
       return 'acceptEdits'
 
@@ -65,9 +68,7 @@ export function getNextPermissionMode(
       if (canCycleToAuto(toolPermissionContext)) {
         return 'auto'
       }
-      return toolPermissionContext.isBypassPermissionsModeAvailable
-        ? 'autopilot'
-        : 'default'
+      return canCycleToAutopilot() ? 'autopilot' : 'default'
 
     case 'bypassPermissions':
       if (canCycleToAuto(toolPermissionContext)) {
@@ -83,9 +84,7 @@ export function getNextPermissionMode(
       return 'default'
 
     case 'auto':
-      return toolPermissionContext.isBypassPermissionsModeAvailable
-        ? 'autopilot'
-        : 'default'
+      return canCycleToAutopilot() ? 'autopilot' : 'default'
 
     default:
       // Unknown future modes always fall back to default.
