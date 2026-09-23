@@ -1166,6 +1166,8 @@ async function hasPermissionsToUseToolInner(
   }
 
   let appState = context.getAppState()
+  const isAutopilot =
+    appState.toolPermissionContext.mode === 'autopilot'
 
   // 1. Check if the tool is denied
   // 1a. Entire tool is denied
@@ -1183,7 +1185,7 @@ async function hasPermissionsToUseToolInner(
 
   // 1b. Check if the entire tool should always ask for permission
   const askRule = getAskRuleForTool(appState.toolPermissionContext, tool)
-  if (askRule) {
+  if (askRule && !isAutopilot) {
     // When autoAllowBashIfSandboxed is on, sandboxed commands skip the ask rule and
     // auto-allow via Bash's checkPermissions. Commands that won't be sandboxed (excluded
     // commands, dangerouslyDisableSandbox) still need to respect the ask rule.
@@ -1243,6 +1245,7 @@ async function hasPermissionsToUseToolInner(
   // rule:{ruleBehavior:'ask'}}}. This must be respected even in bypass mode,
   // just as deny rules are respected at step 1d.
   if (
+    !isAutopilot &&
     toolPermissionResult?.behavior === 'ask' &&
     toolPermissionResult.decisionReason?.type === 'rule' &&
     toolPermissionResult.decisionReason.rule.ruleBehavior === 'ask'
@@ -1254,6 +1257,7 @@ async function hasPermissionsToUseToolInner(
   // bypass-immune — they must prompt even in bypassPermissions mode.
   // checkPathSafetyForAutoEdit returns {type:'safetyCheck'} for these paths.
   if (
+    !isAutopilot &&
     toolPermissionResult?.behavior === 'ask' &&
     toolPermissionResult.decisionReason?.type === 'safetyCheck'
   ) {
@@ -1267,6 +1271,7 @@ async function hasPermissionsToUseToolInner(
   // - Direct bypassPermissions mode
   // - Plan mode when the user originally started with bypass mode (isBypassPermissionsModeAvailable)
   const shouldBypassPermissions =
+    appState.toolPermissionContext.mode === 'autopilot' ||
     appState.toolPermissionContext.mode === 'bypassPermissions' ||
     (appState.toolPermissionContext.mode === 'plan' &&
       appState.toolPermissionContext.isBypassPermissionsModeAvailable)

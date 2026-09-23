@@ -24,6 +24,7 @@ import {
 import {
   type PermissionMode,
   permissionModeFromString,
+  permissionModeTitle,
 } from './PermissionMode.js'
 import { applyPermissionRulesToPermissionContext } from './permissions.js'
 import { loadAllPermissionRulesFromDisk } from './permissionsLoader.js'
@@ -80,6 +81,11 @@ import {
   permissionRuleValueFromString,
   permissionRuleValueToString,
 } from './permissionRuleParser.js'
+import {
+  activateAutopilotMode,
+  deactivateAutopilotMode,
+  isAutopilotModeEnabled,
+} from '../autopilot.js'
 
 /**
  * Checks if a Bash permission rule is dangerous for auto mode.
@@ -605,15 +611,25 @@ export function transitionPermissionMode(
   handlePlanModeTransition(fromMode, toMode)
   handleAutoModeTransition(fromMode, toMode)
 
+  const keepAutopilotActive =
+    toMode === 'autopilot' ||
+    (toMode === 'plan' &&
+      (fromMode === 'autopilot' || isAutopilotModeEnabled()))
+  if (keepAutopilotActive) {
+    activateAutopilotMode()
+  } else {
+    deactivateAutopilotMode()
+  }
+
   if (fromMode === 'plan' && toMode !== 'plan') {
     setHasExitedPlanMode(true)
   }
 
-  if (feature('TRANSCRIPT_CLASSIFIER')) {
-    if (toMode === 'plan' && fromMode !== 'plan') {
-      return prepareContextForPlanMode(context)
-    }
+  if (toMode === 'plan' && fromMode !== 'plan') {
+    return prepareContextForPlanMode(context)
+  }
 
+  if (feature('TRANSCRIPT_CLASSIFIER')) {
     // Plan with auto active counts as using the classifier (for the leaving side).
     // isAutoModeActive() is the authoritative signal — prePlanMode/strippedDangerousRules
     // are unreliable proxies because auto can be deactivated mid-plan (non-opt-in
@@ -775,18 +791,21 @@ export function initialPermissionModeFromCLI({
   let result: { mode: PermissionMode; notification?: string } | undefined
 
   for (const mode of orderedModes) {
-    if (mode === 'bypassPermissions' && disableBypassPermissionsMode) {
+    if (
+      (mode === 'bypassPermissions' || mode === 'autopilot') &&
+      disableBypassPermissionsMode
+    ) {
       if (growthBookDisableBypassPermissionsMode) {
-        logForDebugging('bypassPermissions mode is disabled by Statsig gate', {
+        logForDebugging(`${mode} mode is disabled by Statsig gate`, {
           level: 'warn',
         })
         notification =
-          'Bypass permissions mode was disabled by your organization policy'
+          `${permissionModeTitle(mode)} was disabled by your organization policy`
       } else {
-        logForDebugging('bypassPermissions mode is disabled by settings', {
+        logForDebugging(`${mode} mode is disabled by settings`, {
           level: 'warn',
         })
-        notification = 'Bypass permissions mode was disabled by settings'
+        notification = `${permissionModeTitle(mode)} was disabled by settings`
       }
       continue // Skip this mode if it's disabled
     }
@@ -805,6 +824,11 @@ export function initialPermissionModeFromCLI({
 
   if (feature('TRANSCRIPT_CLASSIFIER') && result.mode === 'auto') {
     autoModeStateModule?.setAutoModeActive(true)
+  }
+  if (result.mode === 'autopilot') {
+    activateAutopilotMode()
+  } else {
+    deactivateAutopilotMode()
   }
 
   return result
@@ -938,6 +962,7 @@ export async function initializeToolPermissionContext({
     settings.permissions?.disableBypassPermissionsMode === 'disable'
   const isBypassPermissionsModeAvailable =
     (permissionMode === 'bypassPermissions' ||
+      permissionMode === 'autopilot' ||
       allowDangerouslySkipPermissions) &&
     !growthBookDisableBypassPermissionsMode &&
     !settingsDisableBypassPermissionsMode

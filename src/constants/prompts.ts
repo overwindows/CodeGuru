@@ -61,6 +61,7 @@ import { logForDebugging } from '../utils/debug.js'
 import { loadMemoryPrompt } from '../memdir/memdir.js'
 import { isUndercover } from '../utils/undercover.js'
 import { isMcpInstructionsDeltaEnabled } from '../utils/mcpInstructionsDelta.js'
+import { getAutopilotSystemPromptSection } from '../utils/autopilot.js'
 
 // Dead code elimination: conditional imports for feature-gated modules
 /* eslint-disable @typescript-eslint/no-require-imports */
@@ -454,7 +455,8 @@ export async function getSystemPrompt(
   if (isEnvTruthy(process.env.CLAUDE_CODE_SIMPLE)) {
     return [
       `You are CodeGuru, Chen's official CLI assistant.\n\nCWD: ${getCwd()}\nDate: ${getSessionStartDate()}`,
-    ]
+      getAutopilotSystemPromptSection(),
+    ].filter(s => s !== null)
   }
 
   const cwd = getCwd()
@@ -489,6 +491,7 @@ ${CYBER_RISK_INSTRUCTION}`,
       getFunctionResultClearingSection(model),
       SUMMARIZE_TOOL_RESULTS_SECTION,
       getProactiveSection(),
+      getAutopilotSystemPromptSection(),
     ].filter(s => s !== null)
   }
 
@@ -527,6 +530,11 @@ ${CYBER_RISK_INSTRUCTION}`,
     systemPromptSection(
       'summarize_tool_results',
       () => SUMMARIZE_TOOL_RESULTS_SECTION,
+    ),
+    DANGEROUS_uncachedSystemPromptSection(
+      'autopilot',
+      () => getAutopilotSystemPromptSection(),
+      'Shift+Tab can enable or disable autopilot between turns',
     ),
     // Numeric length anchors — research shows ~1.2% output token reduction vs
     // qualitative "be concise". Ant-only to measure quality impact first.

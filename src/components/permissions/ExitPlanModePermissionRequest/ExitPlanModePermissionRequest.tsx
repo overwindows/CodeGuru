@@ -47,6 +47,7 @@ import type { PastedContent } from '../../../utils/config.js';
 import type { ImageDimensions } from '../../../utils/imageResizer.js';
 import { maybeResizeAndDownsampleImageBlock } from '../../../utils/imageResizer.js';
 import { cacheImagePath, storeImage } from '../../../utils/imageStore.js';
+import { deactivateAutopilotMode } from '../../../utils/autopilot.js';
 type ResponseValue = 'yes-bypass-permissions' | 'yes-accept-edits' | 'yes-accept-edits-keep-context' | 'yes-default-keep-context' | 'yes-resume-auto-mode' | 'yes-auto-clear-context' | 'ultraplan' | 'no';
 
 /**
@@ -385,6 +386,7 @@ export function ExitPlanModePermissionRequest({
           allowedPrompts
         }
       }));
+      deactivateAutopilotMode();
       setHasExitedPlanMode(true);
       onDone();
       onReject();
@@ -408,6 +410,7 @@ export function ExitPlanModePermissionRequest({
       });
       setHasExitedPlanMode(true);
       setNeedsPlanModeExitAttachment(true);
+      deactivateAutopilotMode();
       autoModeStateModule?.setAutoModeActive(true);
       setAppState(prev => ({
         ...prev,
@@ -446,6 +449,7 @@ export function ExitPlanModePermissionRequest({
       });
       setHasExitedPlanMode(true);
       setNeedsPlanModeExitAttachment(true);
+      deactivateAutopilotMode();
       onDone();
       toolUseConfirm.onAllow(updatedInput, buildPermissionUpdates(keepContextMode, allowedPrompts), acceptFeedback);
       return;
@@ -467,6 +471,7 @@ export function ExitPlanModePermissionRequest({
       });
       setHasExitedPlanMode(true);
       setNeedsPlanModeExitAttachment(true);
+      deactivateAutopilotMode();
       onDone();
       toolUseConfirm.onAllow(updatedInput, buildPermissionUpdates(standardMode, allowedPrompts), acceptFeedback);
       return;
@@ -580,6 +585,7 @@ export function ExitPlanModePermissionRequest({
         }
         setHasExitedPlanMode(true);
         setNeedsPlanModeExitAttachment(true);
+        deactivateAutopilotMode();
         onDone();
         toolUseConfirm.onAllow({}, [{
           type: 'setMode',
