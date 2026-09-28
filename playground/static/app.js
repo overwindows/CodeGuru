@@ -115,6 +115,19 @@ function appendMessage(role, text) {
   const div = document.createElement("div");
   div.className = `msg ${role}`;
   div.textContent = text;
+  if (role === "assistant") {
+    const btn = document.createElement("button");
+    btn.className = "copy-btn";
+    btn.textContent = "Copy";
+    btn.title = "Copy to clipboard";
+    btn.addEventListener("click", () => {
+      navigator.clipboard.writeText(div.textContent).then(() => {
+        btn.textContent = "Copied!";
+        setTimeout(() => { btn.textContent = "Copy"; }, 1500);
+      });
+    });
+    div.appendChild(btn);
+  }
   chatLog.appendChild(div);
   chatLog.scrollTop = chatLog.scrollHeight;
   return div;
@@ -261,6 +274,25 @@ chatInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
     sendChat();
+  }
+});
+
+chatInput.addEventListener("paste", (e) => {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith("image/")) {
+      e.preventDefault();
+      const file = item.getAsFile();
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        pendingImages.push({ file, dataUrl: reader.result });
+        renderPreviews();
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
   }
 });
 

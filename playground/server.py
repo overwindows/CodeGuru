@@ -90,7 +90,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         try:
             q = QwenImageEdit(
                 device=QWEN_AIO_DEVICE,
-                aio_checkpoint="/nvmedata/hf_checkpoints/Qwen-Rapid-AIO-NSFW-v23/v23/Qwen-Rapid-AIO-NSFW-v23.safetensors",
+                aio_checkpoint="/nvmedata/hf_checkpoints/Qwen-Rapid-AIO-v23/v23/Qwen-Rapid-AIO-v23.safetensors",
             )
             q.load()
             qwen_aio = q
