@@ -136,7 +136,9 @@
       "Read(//tmp/**)",
       "Bash(mkdir -p \"C:/Users/wuc/.codeguru/skills/github-workflow\" \"C:/Users/wuc/.codeguru/skills/azure-devops\" \"C:/Users/wuc/.codeguru/skills/kusto-query\" \"C:/Users/wuc/.codeguru/skills/outlook-email\" \"C:/Users/wuc/.codeguru/skills/web-browse-automation\")",
       "Read(//c/Users/wuc/.codeguru/skills/**)",
-      "Read(//q/.tools/.npm-global/node_modules/ai-coder-tools/**)"
+      "Read(//q/.tools/.npm-global/node_modules/ai-coder-tools/**)",
+      "Bash(pip list:*)",
+      "Bash(python3:*)"
     ]
   }
 }
