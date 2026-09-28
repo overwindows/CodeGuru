@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Playground — Gemma 4 + Qwen-Image</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header>
+    <h1>Playground</h1>
+    <div class="model-picker">
+      <label for="model-select">Model:</label>
+      <select id="model-select">
+        <option value="gemma">Gemma 4 26B-A4B (decensored)</option>
+        <option value="qwen-image">Qwen-Image-2.1</option>
+        <option value="qwen-edit">Qwen-Image-Edit-2511</option>
+        <option value="qwen-aio">Qwen-Image-Edit-AIO (NSFW v23)</option>
+      </select>
+    </div>
+    <div id="status" class="status">Loading…</div>
+  </header>
+
+  <main>
+    <!-- Chat mode (Gemma) -->
+    <section id="mode-chat" class="mode active">
+      <div id="chat-log" class="chat-log"></div>
+      <div class="chat-controls">
+        <details>
+          <summary>Settings</summary>
+          <div class="settings-grid">
+            <label>Temperature <input type="number" id="chat-temp" value="1.0" step="0.1" min="0" max="2" /></label>
+            <label>Top P <input type="number" id="chat-topp" value="0.95" step="0.05" min="0" max="1" /></label>
+            <label>Top K <input type="number" id="chat-topk" value="64" step="1" min="0" max="500" /></label>
+            <label>Max tokens <input type="number" id="chat-maxtok" value="1024" step="64" min="1" max="8192" /></label>
+            <label><input type="checkbox" id="chat-sample" checked /> Sample</label>
+          </div>
+        </details>
+        <div id="image-preview-row" class="image-preview-row" hidden></div>
+        <div class="chat-input-row">
+          <label class="file-btn" title="Attach image">
+            <input type="file" id="chat-image" accept="image/*" multiple hidden />
+            <span>📎</span>
+          </label>
+          <textarea id="chat-input" placeholder="Type a message… (attach images with 📎)" rows="2"></textarea>
+          <button id="chat-send">Send</button>
+          <button id="chat-stop" disabled>Stop</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Image generation mode (Qwen-Image) -->
+    <section id="mode-image" class="mode">
+      <div class="image-layout">
+        <div class="image-controls">
+          <label>Prompt
+            <textarea id="img-prompt" rows="4" placeholder="A cat astronaut on the moon, cinematic lighting"></textarea>
+          </label>
+          <label>Negative prompt
+            <textarea id="img-neg" rows="2" placeholder=" "></textarea>
+          </label>
+          <div class="settings-grid">
+            <label>Width <input type="number" id="img-w" value="1024" step="64" min="256" max="2048" /></label>
+            <label>Height <input type="number" id="img-h" value="1024" step="64" min="256" max="2048" /></label>
+            <label>Steps <input type="number" id="img-steps" value="30" step="1" min="1" max="100" /></label>
+            <label>Guidance <input type="number" id="img-cfg" value="4.0" step="0.1" min="0" max="20" /></label>
+            <label>Seed <input type="number" id="img-seed" placeholder="random" /></label>
+          </div>
+          <button id="img-generate">Generate</button>
+          <div id="img-status" class="muted"></div>
+        </div>
+        <div class="image-output">
+          <img id="img-result" alt="" />
+          <a id="img-download" class="download-link" download="generated.png">Download</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Image edit mode (Qwen-Image-Edit) -->
+    <section id="mode-edit" class="mode">
+      <div class="image-layout">
+        <div class="image-controls">
+          <label>Source image
+            <input type="file" id="edit-image" accept="image/*" />
+          </label>
+          <div id="edit-preview-row" class="image-preview-row" hidden></div>
+          <label>Edit prompt
+            <textarea id="edit-prompt" rows="4" placeholder="Make the cat wear a space helmet"></textarea>
+          </label>
+          <label>Negative prompt
+            <textarea id="edit-neg" rows="2" placeholder=" "></textarea>
+          </label>
+          <div class="settings-grid">
+            <label>Steps <input type="number" id="edit-steps" value="30" step="1" min="1" max="100" /></label>
+            <label>Guidance <input type="number" id="edit-cfg" value="4.0" step="0.1" min="0" max="20" /></label>
+            <label>Seed <input type="number" id="edit-seed" placeholder="random" /></label>
+          </div>
+          <button id="edit-generate">Edit</button>
+          <div id="edit-status" class="muted"></div>
+        </div>
+        <div class="image-output">
+          <img id="edit-result" alt="" />
+          <a id="edit-download" class="download-link" download="edited.png">Download</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Image edit mode (Qwen-Image-Edit-AIO NSFW) -->
+    <section id="mode-aio" class="mode">
+      <div class="image-layout">
+        <div class="image-controls">
+          <label>Source image
+            <input type="file" id="aio-image" accept="image/*" />
+          </label>
+          <div id="aio-preview-row" class="image-preview-row" hidden></div>
+          <label>Edit prompt
+            <textarea id="aio-prompt" rows="4" placeholder="Describe the edit…"></textarea>
+          </label>
+          <label>Negative prompt
+            <textarea id="aio-neg" rows="2" placeholder=" "></textarea>
+          </label>
+          <div class="settings-grid">
+            <label>Steps <input type="number" id="aio-steps" value="30" step="1" min="1" max="100" /></label>
+            <label>Guidance <input type="number" id="aio-cfg" value="4.0" step="0.1" min="0" max="20" /></label>
+            <label>Seed <input type="number" id="aio-seed" placeholder="random" /></label>
+          </div>
+          <button id="aio-generate">Edit (AIO)</button>
+          <div id="aio-status" class="muted"></div>
+        </div>
+        <div class="image-output">
+          <img id="aio-result" alt="" />
+          <a id="aio-download" class="download-link" download="aio_edited.png">Download</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

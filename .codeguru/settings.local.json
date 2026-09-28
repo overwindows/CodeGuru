@@ -138,7 +138,8 @@
       "Read(//c/Users/wuc/.codeguru/skills/**)",
       "Read(//q/.tools/.npm-global/node_modules/ai-coder-tools/**)",
       "Bash(pip list:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(/root/miniconda3/envs/playground/bin/python -c \"\nfrom diffusers import QwenImageEditPipeline, QwenImageEditPlusPipeline\nimport inspect\nprint\\('=== QwenImageEditPipeline ==='\\)\nprint\\(inspect.signature\\(QwenImageEditPipeline.__call__\\)\\)\nprint\\(\\)\nprint\\('=== QwenImageEditPlusPipeline ==='\\)\nprint\\(inspect.signature\\(QwenImageEditPlusPipeline.__call__\\)\\)\n\" 2>&1)"
     ]
   }
 }
