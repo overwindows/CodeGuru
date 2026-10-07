@@ -1,5 +1,9 @@
 {
     "chat.tools.terminal.autoApprove": {
-        "bun": true
+        "bun": true,
+        "/^node -e 'const fs=require\\(\"fs\"\\); const p=require\\(\"os\"\\)\\.homedir\\(\\)\\+\"/\\.codeguru/settings\\.json\"; const s=JSON\\.parse\\(fs\\.readFileSync\\(p,\"utf8\"\\)\\); const e=s\\.env\\|\\|\\{\\}; console\\.log\\(JSON\\.stringify\\(\\{file:p,baseUrl:e\\.CODEGURU_BASE_URL\\|\\|e\\.ANTHROPIC_BASE_URL,model:e\\.CODEGURU_MODEL\\|\\|e\\.ANTHROPIC_MODEL,haiku:e\\.CODEGURU_DEFAULT_HAIKU_MODEL\\|\\|e\\.ANTHROPIC_DEFAULT_HAIKU_MODEL,hasAuthToken:!!\\(e\\.CODEGURU_AUTH_TOKEN\\|\\|e\\.ANTHROPIC_AUTH_TOKEN\\)\\},null,2\\)\\);'$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
     }
 }

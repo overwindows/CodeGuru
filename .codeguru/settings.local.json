@@ -92,18 +92,6 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:hermes-agent.nousresearch.com)",
       "Bash(grep -l 'satisfies ToolDef' /Users/chenwu/CodeGuru/src/tools/*/*.ts)",
-      "Bash(python3:*)",
-      "WebFetch(domain:recipes.vllm.ai)",
-      "WebSearch",
-      "WebFetch(domain:github.com)",
-      "Read(//import/ml-sc-scratch1/chenw/speculators/scripts/evaluate/experiments/**)",
-      "Bash(while read:*)",
-      "Bash(do echo:*)",
-      "Read(//import/ml-sc-scratch1/chenw/CodeGuru/**)",
-      "Bash(done)",
-      "Bash(for f:*)",
-      "Bash(do)",
-      "Bash(echo \"=== $f ===\")",
       "Bash(INSTALL_MODE=system ./scripts/install-linux.sh)",
       "Bash(npm install:*)",
       "Bash(conda activate:*)",
@@ -151,7 +139,12 @@
       "Read(//q/.tools/.npm-global/node_modules/ai-coder-tools/**)",
       "Bash(pip list:*)",
       "Bash(python3:*)",
-      "Bash(/root/miniconda3/envs/playground/bin/python -c \"\nfrom diffusers import QwenImageEditPipeline, QwenImageEditPlusPipeline\nimport inspect\nprint\\('=== QwenImageEditPipeline ==='\\)\nprint\\(inspect.signature\\(QwenImageEditPipeline.__call__\\)\\)\nprint\\(\\)\nprint\\('=== QwenImageEditPlusPipeline ==='\\)\nprint\\(inspect.signature\\(QwenImageEditPlusPipeline.__call__\\)\\)\n\" 2>&1)"
+      "Bash(/root/miniconda3/envs/playground/bin/python -c \"\nfrom diffusers import QwenImageEditPipeline, QwenImageEditPlusPipeline\nimport inspect\nprint\\('=== QwenImageEditPipeline ==='\\)\nprint\\(inspect.signature\\(QwenImageEditPipeline.__call__\\)\\)\nprint\\(\\)\nprint\\('=== QwenImageEditPlusPipeline ==='\\)\nprint\\(inspect.signature\\(QwenImageEditPlusPipeline.__call__\\)\\)\n\" 2>&1)",
+      "Bash(git fetch:*)",
+      "Read(//root/miniconda3/envs/**)",
+      "Read(//root/miniconda3/**)",
+      "Bash(/root/miniconda3/envs/codeguru/bin/pip list:*)",
+      "Bash(kill 3080636 3080634)"
     ]
   }
 }

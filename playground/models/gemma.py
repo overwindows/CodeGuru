@@ -79,6 +79,10 @@ class GemmaChat:
             torch_dtype=self.dtype,
             device_map={"": self.device},
         )
+        # lm_head is randomly initialized (missing from checkpoint) in float32.
+        # Cast it to the target dtype to avoid matmul dtype mismatch.
+        if hasattr(self.model, "lm_head") and self.model.lm_head.weight.dtype != self.dtype:
+            self.model.lm_head.to(self.dtype)
         self.model.eval()
 
         # Warmup: run a tiny generation to ensure CUDA kernels are compiled
