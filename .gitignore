@@ -12,3 +12,5 @@ scripts/__pycache__/
 doca_full.txt
 scripts/.vllm_dash_cs.txt
 joblog_*.txt
+
+scratch/
