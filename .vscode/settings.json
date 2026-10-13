@@ -1,5 +1,9 @@
 {
     "chat.tools.terminal.autoApprove": {
-        "bun": true
+        "bun": true,
+        "/^node --check scripts\\\\ado_gem_browser_check\\.mjs$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
     }
 }

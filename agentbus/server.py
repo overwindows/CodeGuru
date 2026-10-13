@@ -42,6 +42,8 @@ class Store:
         self.interrupts: dict[str, dict] = {}    # name -> {reason, by, ts}
         self._ver: int = 0                       # monotonic CAS version counter
         self.logs: list[str] = []
+        self.answers: dict[str, dict] = {}       # id -> ask-chen answer entry
+        self.answers_ev = threading.Event()      # wakes the ask-chen worker
 
     # -- persistence ------------------------------------------------------
     def _fp(self, name: str) -> Path:
@@ -56,6 +58,7 @@ class Store:
             ("inboxes.json", self._ld_inboxes),
             ("tasks.json", self._ld_tasks),
             ("state.json", self._ld_state),
+            ("answers.json", lambda d: self.answers.update(d)),
         ):
             p = self._fp(fn)
             if p.exists():
@@ -93,6 +96,7 @@ class Store:
         self._save("inboxes.json", self.inboxes)
         self._save("tasks.json", self.tasks)
         self._save("state.json", self.state)
+        self._save("answers.json", self.answers)
         self._save("log.md", {"_text": "\n".join(self.logs)})
 
     # -- agents -----------------------------------------------------------
@@ -269,6 +273,39 @@ class Store:
         with self.lock:
             return {k: v["value"] for k, v in self.state.items()}
 
+    # -- ask-chen ---------------------------------------------------------
+    def post_question(self, question, caller, asked_by):
+        aid = uuid.uuid4().hex
+        entry = {"id": aid, "question": question, "caller": caller or "",
+                 "status": "pending", "answer": None, "sources": [],
+                 "confidence": None, "needs_human": False, "ts": _now(),
+                 "asked_by": asked_by}
+        with self.lock:
+            self.answers[aid] = entry
+            self.answers_ev.set()
+            self.persist()
+        return aid
+
+    def get_answer(self, aid):
+        with self.lock:
+            e = self.answers.get(aid)
+            return dict(e) if e else None
+
+    def answer_done(self, aid, result):
+        with self.lock:
+            e = self.answers.get(aid)
+            if not e:
+                return False
+            e["status"] = "done"
+            e["answer"] = result.get("answer")
+            e["sources"] = result.get("sources") or []
+            e["confidence"] = result.get("confidence")
+            e["needs_human"] = bool(result.get("needs_human"))
+            if result.get("error"):
+                e["error"] = result["error"]
+            self.persist()
+            return True
+
     # -- log --------------------------------------------------------------
     def log(self, line, by="anon"):
         with self.lock:
@@ -287,7 +324,8 @@ def _now() -> str:
 # HTTP handler
 # ---------------------------------------------------------------------------
 class Handler(BaseHTTPRequestHandler):
-    store: Store = None  # injected by main()
+    store: Store = None      # injected by main()
+    ask_token: str | None = None
 
     # ---- helpers --------------------------------------------------------
     def _json(self, obj, code=200):
@@ -297,6 +335,20 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def _ask_auth(self) -> bool:
+        """Return True if the request carries the shared Ask-Chen Bearer token.
+        Sends a 401 itself on failure."""
+        expected = self.ask_token
+        if not expected:
+            self._json({"error": "Ask-Chen not configured on server"}, 501)
+            return False
+        auth = self.headers.get("Authorization", "")
+        token = auth[7:].strip() if auth.lower().startswith("bearer ") else ""
+        if token and token == expected:
+            return True
+        self._json({"error": "unauthorized"}, 401)
+        return False
 
     def _read_body(self) -> dict:
         try:
@@ -336,6 +388,18 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({"value": st.get_state(key),
                                    "ver": st.state_ver(key)})
             return self._json({"value": st.get_state(key)})
+        if path == "/ask/result":
+            if not self._ask_auth():
+                return
+            e = st.get_answer(q.get("id", [""])[0]) if q.get("id") else None
+            if not e:
+                return self._json({"error": "unknown id"}, 404)
+            if e["status"] in ("done", "error"):
+                return self._json({"status": "done", "id": e["id"],
+                                   "answer": e["answer"], "sources": e["sources"],
+                                   "confidence": e["confidence"],
+                                   "needs_human": e["needs_human"]})
+            return self._json({"status": "pending", "id": e["id"]})
         return self._json({"error": "not found"}, 404)
 
     def _poll(self, q):
@@ -396,7 +460,56 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({"state": entry, "ver": entry["ver"]})
         if path == "/log":
             return self._json({"lines": st.log(body.get("line", ""), sender)})
+        if path == "/ask":
+            if not self.ask_token:
+                return self._json({"error": "Ask-Chen not configured on server"},
+                                  501)
+            if not self._ask_auth():
+                return
+            question = (body.get("question") or "").strip()
+            if not question:
+                return self._json({"error": "question required"}, 400)
+            aid = st.post_question(question, body.get("caller"), sender)
+            return self._json({"id": aid, "status": "pending"})
         return self._json({"error": "not found"}, 404)
+
+
+def _answer_worker(store: Store):
+    """Daemon thread: claim pending /ask questions, run claude, store result.
+    Flags needs_human answers to Chen's inbox + log."""
+    while True:
+        aid = None
+        with store.lock:
+            for a in store.answers.values():
+                if a.get("status") == "pending":
+                    aid = a["id"]
+                    a["status"] = "working"
+                    break
+            if aid is None:
+                store.answers_ev.clear()
+        if aid is None:
+            store.answers_ev.wait(timeout=2)
+            continue
+        try:
+            e = store.get_answer(aid)
+            import ask_chen
+            result = ask_chen.answer(e.get("question", ""), e.get("caller", ""))
+            store.answer_done(aid, result)
+            if result.get("needs_human"):
+                subject = "ask-chen: needs human"
+                payload = {"question": e.get("question"),
+                           "answer": result.get("answer"),
+                           "sources": result.get("sources")}
+                store.send("chen", payload, subject=subject,
+                           sender="ask-chen")
+                store.log(
+                    f"ask-chen `{e.get('caller','')}` needs human: "
+                    f"{e.get('question','')[:120]}")
+        except Exception as ex:  # noqa: BLE001
+            store.answer_done(aid, {"answer": f"worker error: {str(ex)[:200]}",
+                                    "sources": [], "confidence": 0,
+                                    "needs_human": True,
+                                    "error": str(ex)[:200]})
 
 
 def main(argv=None):
@@ -406,16 +519,26 @@ def main(argv=None):
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--state-dir", default=None,
                     help="JSON persistence dir (omit for in-memory only)")
+    ap.add_argument("--ask-token", default=os.environ.get("AGENTBUS_ASK_TOKEN"),
+                    help="shared Bearer token for the /ask endpoints "
+                         "(omit to disable Ask-Chen)")
     args = ap.parse_args(argv)
 
     store = Store(args.state_dir)
     store.load()
     Handler.store = store
+    Handler.ask_token = args.ask_token
+
+    if args.ask_token:
+        t = threading.Thread(target=_answer_worker, args=(store,), daemon=True)
+        t.start()
 
     if args.state_dir:
         print(f"state-dir : {args.state_dir}", flush=True)
     print(f"listening : http://{args.host}:{args.port}", flush=True)
     print(f"health    : GET /health", flush=True)
+    print(f"ask-chen  : {'enabled (--ask-token)' if args.ask_token else 'DISABLED (no --ask-token)'}",
+          flush=True)
 
     httpd = ThreadingHTTPServer((args.host, args.port), Handler)
     try:
