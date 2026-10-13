@@ -425,3 +425,72 @@ machine the SDK (v1.17.0) is resolved via a directory **junction** at
 `agentbus/node_modules/@modelcontextprotocol/sdk → Q:\.tools\.npm-global\...\ai-coder-tools\node_modules\@modelcontextprotocol\sdk`.
 `node_modules/` is gitignored, so the junction is local-only. If you move the repo,
 recreate the junction (or `npm i @modelcontextprotocol/sdk` in `agentbus/`).
+
+---
+
+## Ask-Chen — colleagues' agents → Chen (inbound Q&A)
+
+A side channel so colleagues' own agents (Copilot, Claude harnesses, custom
+scripts) can POST questions and get answers **grounded in Chen's knowledge base**
+(`Q:\CodeGuru\knowledgebase`). The service auto-answers what it can and flags
+uncertain questions to Chen.
+
+### Enable it
+
+Ask-Chen is **off by default**. When you start the service, pass a shared token:
+
+```
+python server.py --port 8765 --ask-token <SHARED-SECRET>
+# or via the launcher:
+python launcher.py --ask-token <SHARED-SECRET>
+```
+
+The token can also come from the `AGENTBUS_ASK_TOKEN` env var (plain
+`*_TOKEN` in the shell inherits into the process). Give the same secret to the
+colleagues' agents you want to allow. All existing endpoints stay open on
+loopback as before — only `/ask*` require the token.
+
+### External-caller contract
+
+A colleague's agent does:
+
+```
+POST /ask
+Authorization: Bearer <SHARED-SECRET>
+Content-Type: application/json
+{ "question": "What did Chen's team do on the MSN ranking L2.5 model in FY25?",
+  "caller": "copilot-window-3" }            # optional, labels who asked
+
+→ 200 { "id": "a1b2c3..." }                 # status "pending"
+
+POST /ask/result   (or GET /ask/result?id=<id>)
+Authorization: Bearer <SHARED-SECRET>
+{ "id": "a1b2c3..." }
+
+→ when done: { "status": "done", "answer": "...",
+               "sources": ["Q:\CodeGuru\knowledgebase\04_TOPIC_DEEP_DIVES.md"],
+               "confidence": 0.8, "needs_human": false }
+→ while running: { "status": "pending", "id": "..." }
+```
+
+Poll `/ask/result` every few seconds until `status` is `done` (answers typically
+take ~5–30s).
+
+- `needs_human: true` → the KB couldn't ground the answer (thin evidence, or the
+  question needs Chen's own judgment). The question is also **flagged to Chen**:
+  a message lands in the `chen` bus inbox (subject `ask-chen: needs human`) and a
+  line is appended to the team log.
+- Without `--ask-token`, `POST /ask` returns **501**; a missing/wrong token
+  returns **401**.
+
+### How answers are produced
+
+`server.py`'s worker thread (`ask_chen.py`) does the retrieval **in code**:
+it strips the question into keywords and greps the KB (index → numbered `0*.md`
+docs → `segments/`), then feeds the matching lines as an EVIDENCE block to an
+LLM call via the shared router (this CodeGuru install's model, OpenAI-format
+`/v1/chat/completions`). The LLM composes a grounded answer + `sources[]` from
+that evidence only — no file-tool use, no invented facts.
+
+Each `/ask` costs one router call (~tens of seconds worst case) — fine for a
+low-frequency side channel. Don't hammer it.
