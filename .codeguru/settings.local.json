@@ -136,7 +136,15 @@
       "Read(//tmp/**)",
       "Bash(mkdir -p \"C:/Users/wuc/.codeguru/skills/github-workflow\" \"C:/Users/wuc/.codeguru/skills/azure-devops\" \"C:/Users/wuc/.codeguru/skills/kusto-query\" \"C:/Users/wuc/.codeguru/skills/outlook-email\" \"C:/Users/wuc/.codeguru/skills/web-browse-automation\")",
       "Read(//c/Users/wuc/.codeguru/skills/**)",
-      "Read(//q/.tools/.npm-global/node_modules/ai-coder-tools/**)"
+      "Read(//q/.tools/.npm-global/node_modules/ai-coder-tools/**)",
+      "Bash(pip list:*)",
+      "Bash(python3:*)",
+      "Bash(/root/miniconda3/envs/playground/bin/python -c \"\nfrom diffusers import QwenImageEditPipeline, QwenImageEditPlusPipeline\nimport inspect\nprint\\('=== QwenImageEditPipeline ==='\\)\nprint\\(inspect.signature\\(QwenImageEditPipeline.__call__\\)\\)\nprint\\(\\)\nprint\\('=== QwenImageEditPlusPipeline ==='\\)\nprint\\(inspect.signature\\(QwenImageEditPlusPipeline.__call__\\)\\)\n\" 2>&1)",
+      "Bash(git fetch:*)",
+      "Read(//root/miniconda3/envs/**)",
+      "Read(//root/miniconda3/**)",
+      "Bash(/root/miniconda3/envs/codeguru/bin/pip list:*)",
+      "Bash(kill 3080636 3080634)"
     ]
   }
 }
