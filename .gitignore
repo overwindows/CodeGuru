@@ -12,3 +12,17 @@ scripts/__pycache__/
 doca_full.txt
 scripts/.vllm_dash_cs.txt
 joblog_*.txt
+
+# one-off / investigation scratch under scripts/ (kept locally, not tracked)
+scripts/_ap_*
+scripts/_agent_*
+scripts/_deck_*
+scripts/_final_*
+scripts/_focus_*
+scripts/_cap*.txt
+scripts/_consolidate.py
+scripts/_s*.txt
+scripts/ado_probe.py
+scripts/err.txt
+
+scratch/

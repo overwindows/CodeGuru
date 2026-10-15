@@ -36,7 +36,7 @@ def is_up(port: int) -> bool:
         return False
 
 
-def start(port: int, state_dir: str, log_path: str) -> bool:
+def start(port: int, state_dir: str, log_path: str, ask_token: str | None = None) -> bool:
     if is_up(port):
         print(f"service already up on :{port}")
         return True
@@ -45,6 +45,8 @@ def start(port: int, state_dir: str, log_path: str) -> bool:
     cmd = [sys.executable, str(HERE / "server.py"), "--port", str(port)]
     if state_dir:
         cmd += ["--state-dir", state_dir]
+    if ask_token:
+        cmd += ["--ask-token", ask_token]
     # DETACHED so the service outlives the launching terminal/session.
     if platform.system() == "Windows":
         flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
@@ -135,6 +137,8 @@ def main(argv=None):
     ap.add_argument("--log", default=None, help="service log path")
     ap.add_argument("--stop", action="store_true", help="stop a running service")
     ap.add_argument("--check", action="store_true", help="exit 0 if up, 1 if down")
+    ap.add_argument("--ask-token", default=os.environ.get("AGENTBUS_ASK_TOKEN"),
+                    help="shared Bearer token enabling the /ask endpoints")
     args = ap.parse_args(argv)
 
     state_dir = args.state_dir or _default_state_dir()
@@ -144,7 +148,7 @@ def main(argv=None):
         return check(args.port)
     if args.stop:
         return 0 if stop(args.port) else 1
-    return 0 if start(args.port, state_dir, log_path) else 1
+    return 0 if start(args.port, state_dir, log_path, args.ask_token) else 1
 
 
 if __name__ == "__main__":
