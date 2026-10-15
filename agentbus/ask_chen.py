@@ -18,7 +18,9 @@ from __future__ import annotations
 import argparse, json, os, re, sys, urllib.request
 from pathlib import Path
 
-KB_ROOT = r"Q:\CodeGuru\knowledgebase"
+# KB root is relocatable so the same worker can run locally (default) or from
+# an Azure Functions package (AGENTBUS_KB points at the bundled copy).
+KB_ROOT = os.environ.get("AGENTBUS_KB", r"Q:\CodeGuru\knowledgebase")
 
 ROUTER_BASE = os.environ.get(
     "AGENTBUS_ROUTER", "https://llmrouter-axc7eaf4adc3f0g2.eastus-01.azurewebsites.net")

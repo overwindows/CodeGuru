@@ -26,6 +26,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
+import a2a_api
+
 # ---------------------------------------------------------------------------
 # Storage: a thread-safe in-memory store, optionally file-backed.
 # ---------------------------------------------------------------------------
@@ -326,6 +328,7 @@ def _now() -> str:
 class Handler(BaseHTTPRequestHandler):
     store: Store = None      # injected by main()
     ask_token: str | None = None
+    port: int = 8765
 
     # ---- helpers --------------------------------------------------------
     def _json(self, obj, code=200):
@@ -338,17 +341,15 @@ class Handler(BaseHTTPRequestHandler):
 
     def _ask_auth(self) -> bool:
         """Return True if the request carries the shared Ask-Chen Bearer token.
-        Sends a 401 itself on failure."""
-        expected = self.ask_token
-        if not expected:
-            self._json({"error": "Ask-Chen not configured on server"}, 501)
+        A2A security: 401 on missing/wrong token, 501 if not configured.
+        Sends the error response itself on failure."""
+        ok, status, err = a2a_api.check_auth(
+            a2a_api.extract_token(self.headers.get("Authorization", "")),
+            self.ask_token)
+        if not ok:
+            self._json(err, status)
             return False
-        auth = self.headers.get("Authorization", "")
-        token = auth[7:].strip() if auth.lower().startswith("bearer ") else ""
-        if token and token == expected:
-            return True
-        self._json({"error": "unauthorized"}, 401)
-        return False
+        return True
 
     def _read_body(self) -> dict:
         try:
@@ -388,18 +389,19 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({"value": st.get_state(key),
                                    "ver": st.state_ver(key)})
             return self._json({"value": st.get_state(key)})
-        if path == "/ask/result":
+        # A2A discovery: the Agent Card
+        if path == "/.well-known/agent-card.json":
+            return self._json(a2a_api.agent_card(
+                f"http://127.0.0.1:{Handler.port}"))
+        # A2A GetTask: GET /tasks/{id}
+        if path.startswith("/tasks/"):
             if not self._ask_auth():
                 return
-            e = st.get_answer(q.get("id", [""])[0]) if q.get("id") else None
+            tid = path[len("/tasks/"):]
+            e = st.get_answer(tid)
             if not e:
-                return self._json({"error": "unknown id"}, 404)
-            if e["status"] in ("done", "error"):
-                return self._json({"status": "done", "id": e["id"],
-                                   "answer": e["answer"], "sources": e["sources"],
-                                   "confidence": e["confidence"],
-                                   "needs_human": e["needs_human"]})
-            return self._json({"status": "pending", "id": e["id"]})
+                return self._json({"error": "not found"}, 404)
+            return self._json({"task": a2a_api.stored_entry_to_task(e)})
         return self._json({"error": "not found"}, 404)
 
     def _poll(self, q):
@@ -460,18 +462,112 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({"state": entry, "ver": entry["ver"]})
         if path == "/log":
             return self._json({"lines": st.log(body.get("line", ""), sender)})
-        if path == "/ask":
-            if not self.ask_token:
-                return self._json({"error": "Ask-Chen not configured on server"},
-                                  501)
+        # ---- A2A endpoints (per A2A v1.0 REST binding) ----
+        if path.startswith("/tasks/") and path.endswith(":cancel"):
             if not self._ask_auth():
                 return
-            question = (body.get("question") or "").strip()
+            tid = path[len("/tasks/"):-len(":cancel")]
+            e = st.get_answer(tid)
+            if not e:
+                return self._json({"error": "not found"}, 404)
+            if e["status"] == "pending":
+                with st.lock:
+                    e["status"] = "error"
+                    e["answer"] = "canceled by client"
+                    st.persist()
+                st.answers_ev.set()
+            return self._json({"task": a2a_api.stored_entry_to_task(e)})
+        if path == "/message:send":
+            if not self._ask_auth():
+                return
+            msg = body.get("message") or {}
+            # Accept the question either as the message text or a legacy
+            # top-level "question" field for convenience during migration.
+            question = ""
+            for part in msg.get("parts") or []:
+                if part.get("text"):
+                    question = part["text"].strip()
+                    break
             if not question:
-                return self._json({"error": "question required"}, 400)
-            aid = st.post_question(question, body.get("caller"), sender)
-            return self._json({"id": aid, "status": "pending"})
+                question = (body.get("question") or "").strip()
+            if not question:
+                return self._json({"error": "message requires a text part"}, 400)
+            caller = msg.get("metadata", {}).get("caller") if isinstance(
+                msg.get("metadata"), dict) else None
+            tid = st.post_question(question, caller, "a2a-client")
+            return self._json({"task": {"id": tid, "status": {
+                "state": "TASK_STATE_SUBMITTED", "timestamp": _now()}}})
         return self._json({"error": "not found"}, 404)
+
+
+def _azure_worker(store: Store):
+    """Daemon thread: bridge the remote Azure Storage-queue inbox into the local
+    ask-chen worker, and post replies back to the results queue.
+
+    Remote agents (Claude/Copilot over the internet) enqueue questions to the
+    `askchen-inbox` queue with a `{"question":..., "id":...}` payload. We claim
+    each one, answer it via ask_chen, enqueue `{"id":..., "result":{...}}` to
+    `askchen-replies`, then delete the inbox message. This lets colleagues reach
+    Chen's KB without exposing any local compute to the internet (Azure blocked
+    the Function-app deployment via the MAI public-no-auth deny policy, so the
+    Storage-queue relay is the remote door; all real work stays local).
+    """
+    try:
+        import azure_queue
+        import ask_chen
+        conn = os.environ.get("AGENTBUS_AZURE_CONN")
+        if not conn:
+            print("azure-relay: AGENTBUS_AZURE_CONN not set; relay disabled",
+                  flush=True)
+            return
+        client = azure_queue.QueueClient.from_connection_string(conn)
+    except Exception as e:  # noqa: BLE001
+        print(f"azure-relay: init failed ({str(e)[:200]}); relay disabled",
+              flush=True)
+        return
+
+    inbox, replies = "askchen-inbox", "askchen-replies"
+    while True:
+        try:
+            msg = client.recv(inbox, visibility_timeout=300)
+        except Exception as e:  # noqa: BLE001
+            time.sleep(5)
+            continue
+        if not msg:
+            time.sleep(3)
+            continue
+        try:
+            payload = json.loads(msg["text"] or "{}")
+            if not isinstance(payload, dict):
+                payload = {"question": str(payload)}
+            question = (payload.get("question") or "").strip()
+            rid = payload.get("id") or decode_reply_id(msg.get("id", ""))
+            caller = payload.get("caller", "azure-relay")
+            if not question:
+                client.delete(inbox, msg["id"], msg["receipt"])
+                continue
+            result = ask_chen.answer(question, caller)
+            client.put(replies, json.dumps({"id": rid, "result": result},
+                                           ensure_ascii=False))
+            client.delete(inbox, msg["id"], msg["receipt"])
+            store.log(f"azure-relay: answered '{question[:80]}' -> {rid}",
+                      by="azure-relay")
+            if result.get("needs_human"):
+                store.send("chen", {"question": question,
+                                    "answer": result.get("answer"),
+                                    "sources": result.get("sources")},
+                           subject="ask-chen: needs human (azure relay)",
+                           sender="azure-relay")
+        except Exception as e:  # noqa: BLE001
+            store.log(f"azure-relay: error {str(e)[:200]}", by="azure-relay")
+            time.sleep(3)
+
+
+def decode_reply_id(queue_msg_id: str) -> str:
+    """"Correlation id for replies when the client didn't supply one: reuse the
+    Azure queue MessageId (a short, unique token the client can read back from
+    the responses only if we echo it). For replies we echo it as the id."""
+    return queue_msg_id or str(uuid.uuid4().hex)
 
 
 def _answer_worker(store: Store):
@@ -522,22 +618,38 @@ def main(argv=None):
     ap.add_argument("--ask-token", default=os.environ.get("AGENTBUS_ASK_TOKEN"),
                     help="shared Bearer token for the /ask endpoints "
                          "(omit to disable Ask-Chen)")
+    ap.add_argument("--azure-relay", action="store_true",
+                    help="also bridge the remote Azure Storage-queue inbox "
+                         "(reads AGENTBUS_AZURE_CONN; polls askchen-inbox -> "
+                         "askchen-replies)")
     args = ap.parse_args(argv)
 
     store = Store(args.state_dir)
     store.load()
     Handler.store = store
     Handler.ask_token = args.ask_token
+    Handler.port = args.port
 
     if args.ask_token:
         t = threading.Thread(target=_answer_worker, args=(store,), daemon=True)
         t.start()
+
+    if args.azure_relay:
+        import ask_chen  # ensure the answer worker is available to the relay
+        rt = threading.Thread(target=_azure_worker, args=(store,), daemon=True)
+        rt.start()
 
     if args.state_dir:
         print(f"state-dir : {args.state_dir}", flush=True)
     print(f"listening : http://{args.host}:{args.port}", flush=True)
     print(f"health    : GET /health", flush=True)
     print(f"ask-chen  : {'enabled (--ask-token)' if args.ask_token else 'DISABLED (no --ask-token)'}",
+          flush=True)
+    if args.ask_token:
+        print(f"a2a card  : GET /.well-known/agent-card.json", flush=True)
+        print(f"a2a send  : POST /message:send   (Bearer token)", flush=True)
+        print(f"a2a task  : GET /tasks/{{id}}     (Bearer token)", flush=True)
+    print(f"azure-relay: {'enabled (--azure-relay)' if args.azure_relay else 'DISABLED (no --azure-relay)'}",
           flush=True)
 
     httpd = ThreadingHTTPServer((args.host, args.port), Handler)
