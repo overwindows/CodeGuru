@@ -38,6 +38,10 @@ import {
   isTeammate,
 } from '../../utils/teammate.js'
 import { writeToMailbox } from '../../utils/teammateMailbox.js'
+import {
+  activateAutopilotMode,
+  deactivateAutopilotMode,
+} from '../../utils/autopilot.js'
 import { AGENT_TOOL_NAME } from '../AgentTool/constants.js'
 import { TEAM_CREATE_TOOL_NAME } from '../TeamCreateTool/constants.js'
 import { EXIT_PLAN_MODE_V2_TOOL_NAME } from './constants.js'
@@ -359,6 +363,11 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
       setHasExitedPlanMode(true)
       setNeedsPlanModeExitAttachment(true)
       let restoreMode = prev.toolPermissionContext.prePlanMode ?? 'default'
+      if (restoreMode === 'autopilot') {
+        activateAutopilotMode()
+      } else {
+        deactivateAutopilotMode()
+      }
       if (feature('TRANSCRIPT_CLASSIFIER')) {
         if (
           restoreMode === 'auto' &&

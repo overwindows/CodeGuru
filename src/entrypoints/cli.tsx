@@ -1,3 +1,5 @@
+#!/usr/bin/env bun
+
 import { feature } from 'bun:bundle';
 
 // Define MACRO for dev builds — normally injected by bun bundler or bunfig preload,
