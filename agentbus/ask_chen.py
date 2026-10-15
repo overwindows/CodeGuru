@@ -24,8 +24,22 @@ KB_ROOT = os.environ.get("AGENTBUS_KB", r"Q:\CodeGuru\knowledgebase")
 
 ROUTER_BASE = os.environ.get(
     "AGENTBUS_ROUTER", "https://llmrouter-axc7eaf4adc3f0g2.eastus-01.azurewebsites.net")
-ROUTER_TOKEN = os.environ.get("AGENTBUS_ROUTER_TOKEN",
-    "MS1gmUr7p6lPcvMD4K2vsk1vapRxAWKusap6_pMNMRQXjWu1YfRO-CJHaDZBK_qx")
+# Router token: from env, or the gitignored agentbus-secrets.json ({"ROUTER_TOKEN":
+# "..."}), or empty (fail-closed). Never a committed literal.
+def _router_token() -> str:
+    tok = os.environ.get("AGENTBUS_ROUTER_TOKEN", "").strip()
+    if tok:
+        return tok
+    secrets = Path(__file__).resolve().parent / "agentbus-secrets.json"
+    try:
+        tok = str(json.loads(secrets.read_text(encoding="utf-8"))
+                  .get("ROUTER_TOKEN", "")).strip()
+    except Exception:  # noqa: BLE001
+        tok = ""
+    return tok
+
+
+ROUTER_TOKEN = _router_token()
 MODEL = os.environ.get("AGENTBUS_MODEL", "deepseek-v4-flash")
 
 # The answer recipe the model is asked to follow. Retrieval already happened in

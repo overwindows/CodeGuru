@@ -483,13 +483,7 @@ class Handler(BaseHTTPRequestHandler):
             msg = body.get("message") or {}
             # Accept the question either as the message text or a legacy
             # top-level "question" field for convenience during migration.
-            question = ""
-            for part in msg.get("parts") or []:
-                if part.get("text"):
-                    question = part["text"].strip()
-                    break
-            if not question:
-                question = (body.get("question") or "").strip()
+            question = a2a_api.extract_question(msg, body)
             if not question:
                 return self._json({"error": "message requires a text part"}, 400)
             caller = msg.get("metadata", {}).get("caller") if isinstance(
@@ -498,6 +492,16 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({"task": {"id": tid, "status": {
                 "state": "TASK_STATE_SUBMITTED", "timestamp": _now()}}})
         return self._json({"error": "not found"}, 404)
+
+
+def _flag_needs_human(store: Store, question: str, answer, sources, via: str):
+    """Flag a needs_human answer to Chen's inbox + team log (shared by the local
+    and Azure-relay workers so the behavior stays identical)."""
+    store.send("chen",
+               {"question": question, "answer": answer, "sources": sources},
+               subject=f"ask-chen: needs human ({via})",
+               sender="ask-chen")
+    store.log(f"ask-chen needs human ({via}): {(question or '')[:120]}")
 
 
 def _azure_worker(store: Store):
@@ -553,11 +557,8 @@ def _azure_worker(store: Store):
             store.log(f"azure-relay: answered '{question[:80]}' -> {rid}",
                       by="azure-relay")
             if result.get("needs_human"):
-                store.send("chen", {"question": question,
-                                    "answer": result.get("answer"),
-                                    "sources": result.get("sources")},
-                           subject="ask-chen: needs human (azure relay)",
-                           sender="azure-relay")
+                _flag_needs_human(store, question, result.get("answer"),
+                                  result.get("sources"), "azure relay")
         except Exception as e:  # noqa: BLE001
             store.log(f"azure-relay: error {str(e)[:200]}", by="azure-relay")
             time.sleep(3)
@@ -592,15 +593,9 @@ def _answer_worker(store: Store):
             result = ask_chen.answer(e.get("question", ""), e.get("caller", ""))
             store.answer_done(aid, result)
             if result.get("needs_human"):
-                subject = "ask-chen: needs human"
-                payload = {"question": e.get("question"),
-                           "answer": result.get("answer"),
-                           "sources": result.get("sources")}
-                store.send("chen", payload, subject=subject,
-                           sender="ask-chen")
-                store.log(
-                    f"ask-chen `{e.get('caller','')}` needs human: "
-                    f"{e.get('question','')[:120]}")
+                _flag_needs_human(store, e.get("question"),
+                                  result.get("answer"), result.get("sources"),
+                                  "local")
         except Exception as ex:  # noqa: BLE001
             store.answer_done(aid, {"answer": f"worker error: {str(ex)[:200]}",
                                     "sources": [], "confidence": 0,
