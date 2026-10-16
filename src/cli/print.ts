@@ -1064,7 +1064,7 @@ function runHeadlessStreaming(
       newMode === 'acceptEdits' ||
       newMode === 'bypassPermissions' ||
       newMode === 'plan' ||
-      newMode === (feature('TRANSCRIPT_CLASSIFIER') && 'auto') ||
+      newMode === 'auto' ||
       newMode === 'dontAsk'
     ) {
       output.enqueue({
@@ -4599,9 +4599,8 @@ function handleSetPermissionMode(
     }
   }
 
-  // Check if trying to switch to auto mode without the classifier gate
+  // Check if trying to switch to auto mode without the gate
   if (
-    feature('TRANSCRIPT_CLASSIFIER') &&
     request.mode === 'auto' &&
     !isAutoModeGateEnabled()
   ) {

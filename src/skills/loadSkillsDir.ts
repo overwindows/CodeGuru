@@ -63,6 +63,7 @@ import { isRestrictedToPluginOnly } from '../utils/settings/pluginOnlyPolicy.js'
 import { HooksSchema, type HooksSettings } from '../utils/settings/types.js'
 import { createSignal } from '../utils/signal.js'
 import { registerMCPSkillBuilders } from './mcpSkillBuilders.js'
+import { getSkillLifecycleManager } from './SkillLifecycleManager.js'
 
 export type LoadedFrom =
   | 'commands_DEPRECATED'
@@ -768,10 +769,29 @@ export const getSkillDirCommands = memoize(
       logForDebugging(`Deduplicated ${duplicatesRemoved} skills (same file)`)
     }
 
+    // Filter out archived skills (based on lifecycle state)
+    const lifecycleManager = getSkillLifecycleManager()
+    const activeSkills: Command[] = []
+    for (const skill of deduplicatedSkills) {
+      if (skill.type === 'prompt') {
+        const isArchived = await lifecycleManager.isArchived(skill.name)
+        if (isArchived) {
+          logForDebugging(`[skills] Skipping archived skill: ${skill.name}`)
+          continue
+        }
+      }
+      activeSkills.push(skill)
+    }
+
+    const archivedFiltered = deduplicatedSkills.length - activeSkills.length
+    if (archivedFiltered > 0) {
+      logForDebugging(`[skills] Filtered out ${archivedFiltered} archived skills`)
+    }
+
     // Separate conditional skills (with paths frontmatter) from unconditional ones
     const unconditionalSkills: Command[] = []
     const newConditionalSkills: Command[] = []
-    for (const skill of deduplicatedSkills) {
+    for (const skill of activeSkills) {
       if (
         skill.type === 'prompt' &&
         skill.paths &&
@@ -796,7 +816,7 @@ export const getSkillDirCommands = memoize(
     }
 
     logForDebugging(
-      `Loaded ${deduplicatedSkills.length} unique skills (${unconditionalSkills.length} unconditional, ${newConditionalSkills.length} conditional, managed: ${managedSkills.length}, user: ${userSkills.length}, project: ${projectSkillsNested.flat().length}, additional: ${additionalSkillsNested.flat().length}, legacy commands: ${legacyCommands.length})`,
+      `Loaded ${activeSkills.length} unique skills (${unconditionalSkills.length} unconditional, ${newConditionalSkills.length} conditional, managed: ${managedSkills.length}, user: ${userSkills.length}, project: ${projectSkillsNested.flat().length}, additional: ${additionalSkillsNested.flat().length}, legacy commands: ${legacyCommands.length})`,
     )
 
     return unconditionalSkills

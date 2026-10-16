@@ -59,6 +59,7 @@ import type { ModelAlias } from '../../utils/model/aliases.js'
 import { resolveSkillModelOverride } from '../../utils/model/model.js'
 import { recordSkillUsage } from '../../utils/suggestions/skillUsageTracking.js'
 import { createAgentId } from '../../utils/uuid.js'
+import { getSkillLifecycleManager } from '../../skills/SkillLifecycleManager.js'
 import { runAgent } from '../AgentTool/runAgent.js'
 import {
   getToolUseIDFromParentMessage,
@@ -91,6 +92,16 @@ async function getAllCommands(context: ToolUseContext): Promise<Command[]> {
   if (mcpSkills.length === 0) return getCommands(getProjectRoot())
   const localCommands = await getCommands(getProjectRoot())
   return uniqBy([...localCommands, ...mcpSkills], 'name')
+}
+
+async function recordSkillLifecycleUsage(commandName: string): Promise<void> {
+  try {
+    await getSkillLifecycleManager().recordUsage(commandName)
+  } catch (err) {
+    logForDebugging(
+      `[SkillTool] Failed to record lifecycle usage for "${commandName}": ${errorMessage(err)}`,
+    )
+  }
 }
 
 // Re-export Progress from centralized types to break import cycles
@@ -618,6 +629,9 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
     // Track skill usage for ranking
     recordSkillUsage(commandName)
 
+    // Track skill lifecycle (usage count, last used)
+    await recordSkillLifecycleUsage(commandName)
+
     // Check if skill should run as a forked sub-agent
     if (command?.type === 'prompt' && command.context === 'fork') {
       return executeForkedSkill(
@@ -1057,6 +1071,7 @@ async function executeRemoteSkill(
   })
 
   recordSkillUsage(commandName)
+  await recordSkillLifecycleUsage(commandName)
 
   logForDebugging(
     `SkillTool loaded remote skill ${slug} (cacheHit=${cacheHit}, ${latencyMs}ms, ${content.length} chars)`,

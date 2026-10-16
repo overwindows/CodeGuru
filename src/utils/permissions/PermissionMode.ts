@@ -77,6 +77,13 @@ const PERMISSION_MODE_CONFIG: Partial<
     color: 'error',
     external: 'dontAsk',
   },
+  autopilot: {
+    title: 'Autopilot',
+    shortTitle: 'Autopilot',
+    symbol: '⏵⏵',
+    color: 'warning',
+    external: 'default',
+  },
   ...(feature('TRANSCRIPT_CLASSIFIER')
     ? {
         auto: {
@@ -92,16 +99,12 @@ const PERMISSION_MODE_CONFIG: Partial<
 
 /**
  * Type guard to check if a PermissionMode is an ExternalPermissionMode.
- * auto is ant-only and excluded from external modes.
+ * Internal modes are excluded from the external SDK mode set.
  */
 export function isExternalPermissionMode(
   mode: PermissionMode,
 ): mode is ExternalPermissionMode {
-  // External users can't have auto, so always true for them
-  if (process.env.USER_TYPE !== 'ant') {
-    return true
-  }
-  return mode !== 'auto' && mode !== 'bubble'
+  return (EXTERNAL_PERMISSION_MODES as readonly string[]).includes(mode)
 }
 
 function getModeConfig(mode: PermissionMode): PermissionModeConfig {

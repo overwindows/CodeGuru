@@ -56,6 +56,13 @@ type AnthropicRequest = {
     input_schema: unknown
   }>
   tool_choice?: unknown
+  thinking?: {
+    type: 'adaptive' | 'enabled' | 'disabled'
+    budget_tokens?: number
+  }
+  output_config?: {
+    effort?: string
+  }
 }
 
 type OpenAIMessage = {
@@ -190,6 +197,22 @@ function translateMessagesToOpenAI(messages: AnthropicMessage[]): OpenAIMessage[
   return result
 }
 
+/**
+ * Detect whether any OpenAI-translated message carries image content. Text-only
+ * models (e.g. deepseek-v4-flash) cannot consume images, so the adapter can
+ * auto-route these requests to a multimodal model.
+ */
+function hasImageContent(messages: OpenAIMessage[]): boolean {
+  for (const msg of messages) {
+    if (Array.isArray(msg.content)) {
+      if (msg.content.some(p => p.type === 'image_url')) return true
+    } else if (typeof msg.content === 'string' && msg.content.startsWith('data:image/')) {
+      return true
+    }
+  }
+  return false
+}
+
 function buildOpenAIRequest(body: AnthropicRequest): Record<string, unknown> {
   const oaiMessages: OpenAIMessage[] = []
 
@@ -211,8 +234,20 @@ function buildOpenAIRequest(body: AnthropicRequest): Record<string, unknown> {
 
   oaiMessages.push(...translateMessagesToOpenAI(body.messages))
 
+  // Auto-route multimodal (image-bearing) requests to a vision-capable model.
+  // The default CODEGURU_OPENAI_COMPAT_VISION_MODEL defaults to qwen3.8-flash-next
+  // on the LLM router, which natively understands image content (text-only models
+  // like deepseek-v4-flash cannot). The response still reports the caller's
+  // original model, so the swap is transparent to the client.
+  let effectiveModel = body.model
+  const visionModel =
+    process.env.CODEGURU_OPENAI_COMPAT_VISION_MODEL?.trim() || 'qwen3.8-flash-next'
+  if (hasImageContent(oaiMessages) && visionModel && visionModel !== body.model) {
+    effectiveModel = visionModel
+  }
+
   const req: Record<string, unknown> = {
-    model: body.model,
+    model: effectiveModel,
     messages: oaiMessages,
   }
 
@@ -221,6 +256,20 @@ function buildOpenAIRequest(body: AnthropicRequest): Record<string, unknown> {
   if (body.top_p !== undefined) req.top_p = body.top_p
   if (body.stream !== undefined) req.stream = body.stream
   if (body.stop_sequences?.length) req.stop = body.stop_sequences
+
+  const thinkingEnabled =
+    body.thinking?.type !== 'disabled' &&
+    (body.thinking !== undefined ||
+      isEnvTruthy(process.env.CODEGURU_OPENAI_COMPAT_ENABLE_THINKING))
+  if (thinkingEnabled) {
+    req.chat_template_kwargs = {
+      thinking: true,
+      reasoning_effort:
+        body.output_config?.effort ??
+        process.env.CODEGURU_OPENAI_COMPAT_REASONING_EFFORT ??
+        'high',
+    }
+  }
 
   if (body.tools?.length) {
     req.tools = body.tools.map(t => ({
@@ -249,6 +298,7 @@ type OpenAIResponse = {
     message?: {
       role: string
       content: string | null
+      reasoning_content?: string | null
       tool_calls?: Array<{
         id: string
         type: string
@@ -272,6 +322,14 @@ function openAIToAnthropicResponse(
   const message = choice?.message
 
   const contentBlocks: Array<Record<string, unknown>> = []
+
+  if (message?.reasoning_content) {
+    contentBlocks.push({
+      type: 'thinking',
+      thinking: message.reasoning_content,
+      signature: '',
+    })
+  }
 
   if (message?.content) {
     contentBlocks.push({ type: 'text', text: message.content })
@@ -326,6 +384,7 @@ function openAIToAnthropicResponse(
 type OpenAIDelta = {
   role?: string
   content?: string | null
+  reasoning_content?: string | null
   tool_calls?: Array<{
     index: number
     id?: string
@@ -364,6 +423,8 @@ function* translateStreamChunk(
     messageStarted: boolean
     inputTokens: number
     contentIndex: number
+    thinkingBlockIndex: number | null
+    textBlockIndex: number | null
     toolCallIndex: Map<number, number>
     toolCallIds: Map<number, string>
     toolCallNames: Map<number, string>
@@ -390,20 +451,39 @@ function* translateStreamChunk(
 
   const delta = choice?.delta
 
-  if (delta?.content) {
-    // Text delta — open the text block on first content
-    if (state.contentIndex === 0 && !state.toolCallIndex.has(0)) {
+  if (delta?.reasoning_content) {
+    if (state.thinkingBlockIndex === null) {
+      state.thinkingBlockIndex = state.contentIndex++
       yield sseEvent('content_block_start', {
         type: 'content_block_start',
-        index: 0,
-        content_block: { type: 'text', text: '' },
+        index: state.thinkingBlockIndex,
+        content_block: { type: 'thinking', thinking: '', signature: '' },
       })
-      yield sseEvent('ping', { type: 'ping' })
-      state.contentIndex = 1
     }
     yield sseEvent('content_block_delta', {
       type: 'content_block_delta',
-      index: 0,
+      index: state.thinkingBlockIndex,
+      delta: {
+        type: 'thinking_delta',
+        thinking: delta.reasoning_content,
+      },
+    })
+  }
+
+  if (delta?.content) {
+    // Text delta — open the text block on first content
+    if (state.textBlockIndex === null) {
+      state.textBlockIndex = state.contentIndex++
+      yield sseEvent('content_block_start', {
+        type: 'content_block_start',
+        index: state.textBlockIndex,
+        content_block: { type: 'text', text: '' },
+      })
+      yield sseEvent('ping', { type: 'ping' })
+    }
+    yield sseEvent('content_block_delta', {
+      type: 'content_block_delta',
+      index: state.textBlockIndex,
       delta: { type: 'text_delta', text: delta.content },
     })
   }
@@ -478,6 +558,8 @@ async function translateStreamResponse(
     messageStarted: false,
     inputTokens: estimatedInputTokens,
     contentIndex: 0,
+    thinkingBlockIndex: null,
+    textBlockIndex: null,
     toolCallIndex: new Map<number, number>(),
     toolCallIds: new Map<number, string>(),
     toolCallNames: new Map<number, string>(),
@@ -562,6 +644,102 @@ async function translateStreamResponse(
   })
 }
 
+function translateNonStreamResponseToStream(
+  oai: OpenAIResponse,
+  originalModel: string,
+  estimatedInputTokens: number,
+): Response {
+  const choice = oai.choices[0]
+  const message = choice?.message
+  const state = {
+    messageStarted: false,
+    inputTokens: oai.usage?.prompt_tokens ?? estimatedInputTokens,
+    contentIndex: 0,
+    thinkingBlockIndex: null,
+    textBlockIndex: null,
+    toolCallIndex: new Map<number, number>(),
+    toolCallIds: new Map<number, string>(),
+    toolCallNames: new Map<number, string>(),
+  }
+  const chunks: string[] = []
+  const appendChunk = (chunk: Parameters<typeof translateStreamChunk>[0]) => {
+    chunks.push(...translateStreamChunk(chunk, state))
+  }
+
+  appendChunk({
+    id: oai.id,
+    model: originalModel,
+    choices: [{ index: choice?.index ?? 0, delta: {} }],
+  })
+
+  if (message?.reasoning_content) {
+    appendChunk({
+      id: oai.id,
+      model: originalModel,
+      choices: [
+        {
+          index: choice?.index ?? 0,
+          delta: { reasoning_content: message.reasoning_content },
+        },
+      ],
+    })
+  }
+
+  if (message?.content) {
+    appendChunk({
+      id: oai.id,
+      model: originalModel,
+      choices: [
+        {
+          index: choice?.index ?? 0,
+          delta: { content: message.content },
+        },
+      ],
+    })
+  }
+
+  if (message?.tool_calls?.length) {
+    appendChunk({
+      id: oai.id,
+      model: originalModel,
+      choices: [
+        {
+          index: choice?.index ?? 0,
+          delta: {
+            tool_calls: message.tool_calls.map((toolCall, index) => ({
+              index,
+              id: toolCall.id,
+              type: toolCall.type,
+              function: toolCall.function,
+            })),
+          },
+        },
+      ],
+    })
+  }
+
+  appendChunk({
+    id: oai.id,
+    model: originalModel,
+    choices: [
+      {
+        index: choice?.index ?? 0,
+        delta: {},
+        finish_reason: choice?.finish_reason ?? 'stop',
+      },
+    ],
+    usage: oai.usage,
+  })
+
+  return new Response(chunks.join(''), {
+    status: 200,
+    headers: {
+      'content-type': 'text/event-stream',
+      'cache-control': 'no-cache',
+    },
+  })
+}
+
 // ---------------------------------------------------------------------------
 // Main fetch interceptor
 // ---------------------------------------------------------------------------
@@ -620,6 +798,13 @@ export function wrapFetchWithOpenAICompat(inner: FetchFn): FetchFn {
 
     // Translate to OpenAI format
     const openAIBody = buildOpenAIRequest(anthropicBody)
+    const isStreaming = anthropicBody.stream === true
+    const useNonStreamingUpstream =
+      isStreaming &&
+      isEnvTruthy(process.env.CODEGURU_OPENAI_COMPAT_DISABLE_STREAMING)
+    if (useNonStreamingUpstream) {
+      openAIBody.stream = false
+    }
 
     // Build the OpenAI URL: replace /v1/messages → /v1/chat/completions
     const oaiUrl = url.replace(/\/v1\/messages(\?.*)?$/, '/v1/chat/completions')
@@ -635,8 +820,6 @@ export function wrapFetchWithOpenAICompat(inner: FetchFn): FetchFn {
     headers.delete('x-app')
     headers.delete('x-claude-code-session-id')
 
-    const isStreaming = anthropicBody.stream === true
-
     const oaiResponse = await inner(oaiUrl, {
       ...init,
       method: 'POST',
@@ -650,6 +833,14 @@ export function wrapFetchWithOpenAICompat(inner: FetchFn): FetchFn {
     }
 
     if (isStreaming) {
+      if (useNonStreamingUpstream) {
+        const oaiJson = (await oaiResponse.json()) as OpenAIResponse
+        return translateNonStreamResponseToStream(
+          oaiJson,
+          anthropicBody.model,
+          estimateTokens(anthropicBody),
+        )
+      }
       return translateStreamResponse(
         oaiResponse,
         anthropicBody.model,

@@ -133,6 +133,7 @@ import { hasConsoleBillingAccess } from '../utils/billing.js';
 import { logEvent, type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS } from 'src/services/analytics/index.js';
 import { getFeatureValue_CACHED_MAY_BE_STALE } from 'src/services/analytics/growthbook.js';
 import { textForResubmit, handleMessageFromStream, type StreamingToolUse, type StreamingThinking, isCompactBoundaryMessage, getMessagesAfterCompactBoundary, getContentText, createUserMessage, createAssistantMessage, createTurnDurationMessage, createAgentsKilledMessage, createApiMetricsMessage, createSystemMessage, createCommandInputMessage, formatCommandInputTags } from '../utils/messages.js';
+import { selectDisplayedMessages } from '../utils/selectDisplayedMessages.js';
 import { generateSessionTitle } from '../utils/sessionTitle.js';
 import { BASH_INPUT_TAG, COMMAND_MESSAGE_TAG, COMMAND_NAME_TAG, LOCAL_COMMAND_STDOUT_TAG } from '../constants/xml.js';
 import { escapeXml } from '../utils/xml.js';
@@ -263,6 +264,7 @@ import { useNpmDeprecationNotification } from 'src/hooks/notifs/useNpmDeprecatio
 import { useIDEStatusIndicator } from 'src/hooks/notifs/useIDEStatusIndicator.js';
 import { useModelMigrationNotifications } from 'src/hooks/notifs/useModelMigrationNotifications.js';
 import { useCanSwitchToExistingSubscription } from 'src/hooks/notifs/useCanSwitchToExistingSubscription.js';
+import { useConsolidationSuggestionsNotification } from 'src/hooks/notifs/useConsolidationSuggestionsNotification.js';
 import { useTeammateLifecycleNotification } from 'src/hooks/notifs/useTeammateShutdownNotification.js';
 import { useFastModeNotification } from 'src/hooks/notifs/useFastModeNotification.js';
 import { AutoRunIssueNotification, shouldAutoRunIssue, getAutoRunIssueReasonText, getAutoRunCommand, type AutoRunIssueReason } from '../utils/autoRunIssue.js';
@@ -763,6 +765,7 @@ export function REPL({
   useAntOrgWarningNotification();
   useInstallMessages();
   useChromeExtensionNotification();
+  useConsolidationSuggestionsNotification();
   useOfficialMarketplaceNotification();
   useLspInitializationNotification();
   useTeammateLifecycleNotification();
@@ -4497,16 +4500,16 @@ export function REPL({
   const viewedTeammateTask = viewedTask && isInProcessTeammateTask(viewedTask) ? viewedTask : undefined;
   const viewedAgentTask = viewedTeammateTask ?? (viewedTask && isLocalAgentTask(viewedTask) ? viewedTask : undefined);
 
-  // Bypass useDeferredValue when streaming text is showing so Messages renders
-  // the final message in the same frame streaming text clears. Also bypass when
-  // not loading — deferredMessages only matters during streaming (keeps input
-  // responsive); after the turn ends, showing messages immediately prevents a
-  // jitter gap where the spinner is gone but the answer hasn't appeared yet.
-  // Only reducedMotion users keep the deferred path during loading.
-  const usesSyncMessages = showStreamingText || !isLoading;
+  // Defer message updates while waiting for a response to keep input
+  // responsive, but never let a stale deferred snapshot replace the completed
+  // history. Streaming and completed turns always use current messages.
   // When viewing an agent, never fall through to leader — empty until
   // bootstrap/stream fills. Closes the see-leader-type-agent footgun.
-  const displayedMessages = viewedAgentTask ? viewedAgentTask.messages ?? [] : usesSyncMessages ? messages : deferredMessages;
+  const displayedMessages = viewedAgentTask ? viewedAgentTask.messages ?? [] : selectDisplayedMessages(messages, deferredMessages, {
+    isLoading,
+    showStreamingText,
+    completedHistoryLength: userInputBaselineRef.current
+  });
   // Show the placeholder until the real user message appears in
   // displayedMessages. userInputOnProcessing stays set for the whole turn
   // (cleared in resetLoadingState); this length check hides it once

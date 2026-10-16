@@ -4,7 +4,6 @@ import { SandboxSettingsSchema } from '../../entrypoints/sandboxTypes.js'
 import { isEnvTruthy } from '../envUtils.js'
 import { lazySchema } from '../lazySchema.js'
 import {
-  EXTERNAL_PERMISSION_MODES,
   PERMISSION_MODES,
 } from '../permissions/PermissionMode.js'
 import { MarketplaceSourceSchema } from '../plugins/schemas.js'
@@ -57,11 +56,7 @@ export const PermissionsSchema = lazySchema(() =>
           'List of permission rules that should always prompt for confirmation',
         ),
       defaultMode: z
-        .enum(
-          feature('TRANSCRIPT_CLASSIFIER')
-            ? PERMISSION_MODES
-            : EXTERNAL_PERMISSION_MODES,
-        )
+        .enum(PERMISSION_MODES)
         .optional()
         .describe('Default permission mode when Claude Code needs access'),
       disableBypassPermissionsMode: z
@@ -651,6 +646,12 @@ export const SettingsSchema = lazySchema(() =>
         .optional()
         .describe(
           'Skip the WebFetch blocklist check for enterprise environments with restrictive security policies',
+        ),
+      memoryProvider: z
+        .enum(['file', 'sqlite'])
+        .optional()
+        .describe(
+          'Memory backend: file-based (default) or SQLite FTS5 full-text search',
         ),
       sandbox: SandboxSettingsSchema().optional(),
       feedbackSurveyRate: z

@@ -1,10 +1,15 @@
 import { feature } from 'bun:bundle'
 import type { ToolPermissionContext } from '../../Tool.js'
 import { logForDebugging } from '../debug.js'
-import type { PermissionMode } from './PermissionMode.js'
+import {
+  isExternalPermissionMode,
+  type ExternalPermissionMode,
+  type PermissionMode,
+} from './PermissionMode.js'
 import {
   getAutoModeUnavailableReason,
   isAutoModeGateEnabled,
+  isBypassPermissionsModeDisabled,
   transitionPermissionMode,
 } from './permissionSetup.js'
 
@@ -28,6 +33,10 @@ function canCycleToAuto(ctx: ToolPermissionContext): boolean {
   return false
 }
 
+function canCycleToAutopilot(): boolean {
+  return !isBypassPermissionsModeDisabled()
+}
+
 /**
  * Determines the next permission mode when cycling through modes with Shift+Tab.
  */
@@ -45,7 +54,7 @@ export function getNextPermissionMode(
         if (canCycleToAuto(toolPermissionContext)) {
           return 'auto'
         }
-        return 'default'
+        return canCycleToAutopilot() ? 'autopilot' : 'default'
       }
       return 'acceptEdits'
 
@@ -59,23 +68,53 @@ export function getNextPermissionMode(
       if (canCycleToAuto(toolPermissionContext)) {
         return 'auto'
       }
-      return 'default'
+      return canCycleToAutopilot() ? 'autopilot' : 'default'
 
     case 'bypassPermissions':
       if (canCycleToAuto(toolPermissionContext)) {
         return 'auto'
       }
-      return 'default'
+      return 'autopilot'
 
     case 'dontAsk':
       // Not exposed in UI cycle yet, but return default if somehow reached
       return 'default'
 
+    case 'autopilot':
+      return 'default'
+
+    case 'auto':
+      return canCycleToAutopilot() ? 'autopilot' : 'default'
 
     default:
-      // Covers auto (when TRANSCRIPT_CLASSIFIER is enabled) and any future modes — always fall back to default
+      // Unknown future modes always fall back to default.
       return 'default'
   }
+}
+
+export function getNextExternalPermissionMode(
+  toolPermissionContext: ToolPermissionContext,
+): ExternalPermissionMode {
+  let candidate = getNextPermissionMode(toolPermissionContext)
+  // Guard against future internal-only modes whose cycle never reaches an
+  // external mode. 'default' is always external, so it's a safe fallback that
+  // guarantees termination. The bound is generous: the current graph reaches
+  // an external mode in <=4 steps.
+  const maxIterations = 8
+  for (let i = 0; i < maxIterations && !isExternalPermissionMode(candidate); i++) {
+    candidate = getNextPermissionMode({
+      ...toolPermissionContext,
+      mode: candidate,
+    })
+  }
+  if (!isExternalPermissionMode(candidate)) {
+    logForDebugging(
+      `[permissions] getNextExternalPermissionMode failed to reach an external mode after ${maxIterations} steps; falling back to default`,
+      { mode: toolPermissionContext.mode },
+    )
+    return 'default'
+  }
+  return candidate
 }
 
 /**

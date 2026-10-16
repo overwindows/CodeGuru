@@ -73,7 +73,7 @@ import { isMacosOptionChar, MACOS_OPTION_SPECIAL_CHARS } from '../../utils/keybo
 import { logError } from '../../utils/log.js';
 import { isOpus1mMergeEnabled, modelDisplayString } from '../../utils/model/model.js';
 import { setAutoModeActive } from '../../utils/permissions/autoModeState.js';
-import { cyclePermissionMode, getNextPermissionMode } from '../../utils/permissions/getNextPermissionMode.js';
+import { cyclePermissionMode, getNextExternalPermissionMode, getNextPermissionMode } from '../../utils/permissions/getNextPermissionMode.js';
 import { transitionPermissionMode } from '../../utils/permissions/permissionSetup.js';
 import { getPlatform } from '../../utils/platform.js';
 import type { ProcessUserInputContext } from '../../utils/processUserInput/processUserInput.js';
@@ -1415,7 +1415,7 @@ function PromptInput({
         mode: viewedTeammate.permissionMode
       };
       // Pass undefined for teamContext (unused but kept for API compatibility)
-      const nextMode = getNextPermissionMode(teammateContext, undefined);
+      const nextMode = getNextExternalPermissionMode(teammateContext);
       logEvent('tengu_mode_cycle', {
         to: nextMode as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });

@@ -1,3 +1,5 @@
+#!/usr/bin/env bun
+
 import { feature } from 'bun:bundle';
 
 // Define MACRO for dev builds — normally injected by bun bundler or bunfig preload,
@@ -5,7 +7,7 @@ import { feature } from 'bun:bundle';
 // eslint-disable-next-line custom-rules/no-top-level-side-effects
 if (typeof (globalThis as any).MACRO === 'undefined') {
   (globalThis as any).MACRO = {
-    VERSION: '0.0.1-beta',
+    VERSION: '0.0.2-beta',
     BUILD_TIME: new Date().toISOString(),
     PACKAGE_URL: 'codeguru',
     NATIVE_PACKAGE_URL: '',

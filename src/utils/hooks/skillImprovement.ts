@@ -27,6 +27,7 @@ import {
   createApiQueryHook,
 } from './apiQueryHookHelper.js'
 import { registerPostSamplingHook } from './postSamplingHooks.js'
+import { getSkillLifecycleManager } from '../../skills/SkillLifecycleManager.js'
 
 const TURN_BATCH_SIZE = 5
 
@@ -261,6 +262,8 @@ Rules:
 
   try {
     await fs.writeFile(filePath, updatedContent, 'utf-8')
+    // Track improvement in lifecycle manager
+    await getSkillLifecycleManager().recordImprovement(skillName)
   } catch (e) {
     logError(toError(e))
   }
