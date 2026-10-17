@@ -20,6 +20,23 @@ export function isOpenAICompatMode(): boolean {
   return false
 }
 
+const OMITTED_MEDIA_TEXT =
+  '[Attached image or PDF was omitted because this model endpoint accepts only text content.]'
+
+/**
+ * SambaCloud GLM-5.3 rejects image_url and file parts with a 400 ("text only
+ * models"). Vision input is sent only for a known vision model, an explicit
+ * CODEGURU_OPENAI_COMPAT_VISION_MODEL, or CODEGURU_OPENAI_COMPAT_ALLOW_IMAGES.
+ */
+export function modelAcceptsMediaInput(model: string | undefined): boolean {
+  if (!isOpenAICompatMode()) return true
+  if (isEnvTruthy(process.env.CODEGURU_OPENAI_COMPAT_ALLOW_IMAGES)) return true
+  const name = (model ?? '').toLowerCase()
+  const override = process.env.CODEGURU_OPENAI_COMPAT_VISION_MODEL?.trim().toLowerCase()
+  if (override && name === override) return true
+  return name.includes('gemma')
+}
+
 // ---------------------------------------------------------------------------
 // Anthropic → OpenAI request translation
 // ---------------------------------------------------------------------------
@@ -65,12 +82,16 @@ type AnthropicRequest = {
   }
 }
 
+type OpenAIContentPart = {
+  type: string
+  text?: string
+  image_url?: { url: string }
+  file?: { filename?: string; file_data?: string; file_url?: string }
+}
+
 type OpenAIMessage = {
   role: string
-  content:
-    | string
-    | null
-    | Array<{ type: string; text?: string; image_url?: { url: string } }>
+  content: string | null | OpenAIContentPart[]
   tool_calls?: Array<{
     id: string
     type: 'function'
@@ -80,40 +101,65 @@ type OpenAIMessage = {
   name?: string
 }
 
+type MediaSource = {
+  type: string
+  media_type?: string
+  data?: string
+  url?: string
+}
+
+function mediaSourceToPart(
+  blockType: 'image' | 'document',
+  source: unknown,
+): OpenAIContentPart | undefined {
+  const src = source as MediaSource
+  if (blockType === 'image') {
+    if (src?.type === 'base64' && src.media_type && src.data) {
+      return {
+        type: 'image_url',
+        image_url: { url: `data:${src.media_type};base64,${src.data}` },
+      }
+    }
+    if (src?.type === 'url' && src.url) {
+      return { type: 'image_url', image_url: { url: src.url } }
+    }
+    return undefined
+  }
+  // GLM-5.3 accepts PDF document blocks. Send them as OpenAI file parts
+  // instead of dropping them.
+  if (src?.type === 'base64' && src.media_type && src.data) {
+    const filename =
+      src.media_type === 'application/pdf' ? 'document.pdf' : 'document'
+    return {
+      type: 'file',
+      file: {
+        filename,
+        file_data: `data:${src.media_type};base64,${src.data}`,
+      },
+    }
+  }
+  if (src?.type === 'url' && src.url) {
+    return { type: 'file', file: { file_url: src.url } }
+  }
+  return undefined
+}
+
 function anthropicContentToOpenAI(
   content: AnthropicMessage['content'],
 ): OpenAIMessage['content'] {
   if (typeof content === 'string') return content
   if (!Array.isArray(content)) return String(content)
 
-  const parts: Array<{
-    type: string
-    text?: string
-    image_url?: { url: string }
-  }> = []
+  const parts: OpenAIContentPart[] = []
   for (const block of content) {
     if (block.type === 'text' && block.text !== undefined) {
       parts.push({ type: 'text', text: block.text })
-    } else if (block.type === 'image' && block.source) {
-      const src = block.source as {
-        type: string
-        media_type?: string
-        data?: string
-        url?: string
-      }
-      if (src.type === 'base64' && src.media_type && src.data) {
-        parts.push({
-          type: 'image_url',
-          image_url: {
-            url: `data:${src.media_type};base64,${src.data}`,
-          },
-        })
-      } else if (src.type === 'url' && src.url) {
-        parts.push({
-          type: 'image_url',
-          image_url: { url: src.url },
-        })
-      }
+    } else if (
+      (block.type === 'image' || block.type === 'document') &&
+      block.source
+    ) {
+      const part = mediaSourceToPart(block.type, block.source)
+      if (part) parts.push(part)
     }
     // tool_use, tool_result blocks are handled separately
   }
@@ -163,9 +209,28 @@ function translateMessagesToOpenAI(messages: AnthropicMessage[]): OpenAIMessage[
     }
 
     if (msg.role === 'user' && toolResultBlocks.length > 0) {
+      const mediaFromResults: Array<{
+        type: string
+        text?: string
+        source?: unknown
+      }> = []
       for (const trBlock of toolResultBlocks) {
         const trContent = Array.isArray(trBlock.content)
-          ? (trBlock.content as Array<{ type: string; text?: string }>)
+          ? (trBlock.content as Array<{
+              type: string
+              text?: string
+              source?: unknown
+            }>)
+          : undefined
+        if (trContent) {
+          mediaFromResults.push(
+            ...trContent.filter(
+              c => c.type === 'image' || c.type === 'document',
+            ),
+          )
+        }
+        const text = trContent
+          ? trContent
               .filter(c => c.type === 'text')
               .map(c => c.text ?? '')
               .join('')
@@ -174,16 +239,21 @@ function translateMessagesToOpenAI(messages: AnthropicMessage[]): OpenAIMessage[
             : ''
         result.push({
           role: 'tool',
-          content: trContent,
+          content: text,
           tool_call_id: trBlock.tool_use_id ?? '',
         })
       }
-      // Any non-tool_result content comes after
+      // Tool messages are text-only. Images and PDFs inside a tool result,
+      // plus any sibling user blocks, follow as a user message so GLM-5.3
+      // still receives them.
       const rest = msg.content.filter(b => b.type !== 'tool_result')
-      if (rest.length > 0) {
+      const attached = [...mediaFromResults, ...rest]
+      if (attached.length > 0) {
         result.push({
           role: 'user',
-          content: anthropicContentToOpenAI(rest as AnthropicMessage['content']),
+          content: anthropicContentToOpenAI(
+            attached as AnthropicMessage['content'],
+          ),
         })
       }
       continue
@@ -198,15 +268,43 @@ function translateMessagesToOpenAI(messages: AnthropicMessage[]): OpenAIMessage[
 }
 
 /**
- * Detect whether any OpenAI-translated message carries image content. Text-only
- * models (e.g. deepseek-v4-flash) cannot consume images, so the adapter can
- * auto-route these requests to a multimodal model.
+ * Detect image or PDF content. Used only when an explicit vision-model
+ * override is configured.
  */
-function hasImageContent(messages: OpenAIMessage[]): boolean {
+function downgradeMediaToText(messages: OpenAIMessage[]): void {
+  for (const msg of messages) {
+    if (!Array.isArray(msg.content)) continue
+    const next: OpenAIContentPart[] = []
+    for (const part of msg.content) {
+      if (part.type === 'image_url' || part.type === 'file' || part.file) {
+        next.push({ type: 'text', text: OMITTED_MEDIA_TEXT })
+      } else {
+        next.push(part)
+      }
+    }
+    if (next.every(part => part.type === 'text')) {
+      msg.content = next.map(part => part.text ?? '').join('\n')
+    } else {
+      msg.content = next
+    }
+  }
+}
+
+function hasMultimodalContent(messages: OpenAIMessage[]): boolean {
   for (const msg of messages) {
     if (Array.isArray(msg.content)) {
-      if (msg.content.some(p => p.type === 'image_url')) return true
-    } else if (typeof msg.content === 'string' && msg.content.startsWith('data:image/')) {
+      if (
+        msg.content.some(
+          p => p.type === 'image_url' || p.type === 'file' || p.file,
+        )
+      ) {
+        return true
+      }
+    } else if (
+      typeof msg.content === 'string' &&
+      (msg.content.startsWith('data:image/') ||
+        msg.content.startsWith('data:application/pdf'))
+    ) {
       return true
     }
   }
@@ -234,16 +332,21 @@ function buildOpenAIRequest(body: AnthropicRequest): Record<string, unknown> {
 
   oaiMessages.push(...translateMessagesToOpenAI(body.messages))
 
-  // Auto-route multimodal (image-bearing) requests to a vision-capable model.
-  // The default CODEGURU_OPENAI_COMPAT_VISION_MODEL defaults to qwen3.8-flash-next
-  // on the LLM router, which natively understands image content (text-only models
-  // like deepseek-v4-flash cannot). The response still reports the caller's
-  // original model, so the swap is transparent to the client.
+  // Keep the caller model unless a vision model is configured explicitly.
+  // Do not default to qwen3.8-flash-next: SambaCloud returns 404 for it.
   let effectiveModel = body.model
-  const visionModel =
-    process.env.CODEGURU_OPENAI_COMPAT_VISION_MODEL?.trim() || 'qwen3.8-flash-next'
-  if (hasImageContent(oaiMessages) && visionModel && visionModel !== body.model) {
+  const visionModel = process.env.CODEGURU_OPENAI_COMPAT_VISION_MODEL?.trim()
+  if (
+    visionModel &&
+    hasMultimodalContent(oaiMessages) &&
+    visionModel !== body.model
+  ) {
     effectiveModel = visionModel
+  }
+  // GLM-5.3 on SambaCloud is a text-only endpoint. image_url and file parts
+  // come back as 400, so replace them before the request is sent.
+  if (!modelAcceptsMediaInput(effectiveModel)) {
+    downgradeMediaToText(oaiMessages)
   }
 
   const req: Record<string, unknown> = {

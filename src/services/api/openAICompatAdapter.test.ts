@@ -8,6 +8,7 @@ const originalEnableThinking =
   process.env.CODEGURU_OPENAI_COMPAT_ENABLE_THINKING
 const originalReasoningEffort =
   process.env.CODEGURU_OPENAI_COMPAT_REASONING_EFFORT
+const originalVisionModel = process.env.CODEGURU_OPENAI_COMPAT_VISION_MODEL
 
 afterEach(() => {
   if (originalCompat === undefined) {
@@ -32,6 +33,11 @@ afterEach(() => {
   } else {
     process.env.CODEGURU_OPENAI_COMPAT_REASONING_EFFORT =
       originalReasoningEffort
+  }
+  if (originalVisionModel === undefined) {
+    delete process.env.CODEGURU_OPENAI_COMPAT_VISION_MODEL
+  } else {
+    process.env.CODEGURU_OPENAI_COMPAT_VISION_MODEL = originalVisionModel
   }
 })
 
@@ -148,6 +154,170 @@ describe('OpenAI compatibility adapter', () => {
     )
     expect(body).toContain(
       'data: {"type":"content_block_delta","index":1,"delta":{"type":"text_delta","text":"323"}}',
+    )
+  })
+
+  test('omits page images for text-only GLM-5.3', async () => {
+    process.env.CODEGURU_OPENAI_COMPAT = '1'
+    delete process.env.CODEGURU_OPENAI_COMPAT_VISION_MODEL
+    delete process.env.CODEGURU_OPENAI_COMPAT_ALLOW_IMAGES
+
+    const inner = async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body))
+      expect(body.model).toBe('GLM-5.3')
+      expect(JSON.stringify(body.messages)).not.toContain('image_url')
+      expect(body.messages).toEqual([
+        {
+          role: 'user',
+          content:
+            '[Attached image or PDF was omitted because this model endpoint accepts only text content.]',
+        },
+      ])
+      return Response.json({
+        id: 'chatcmpl-image',
+        object: 'chat.completion',
+        model: 'GLM-5.3',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: 'a page' },
+            finish_reason: 'stop',
+          },
+        ],
+      })
+    }
+
+    const response = await wrapFetchWithOpenAICompat(inner)(
+      'https://api.sambanova.ai/v1/messages',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'GLM-5.3',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image',
+                  source: {
+                    type: 'base64',
+                    media_type: 'image/jpeg',
+                    data: 'QUJD',
+                  },
+                },
+              ],
+            },
+          ],
+          max_tokens: 16,
+          stream: false,
+        }),
+      },
+    )
+    expect(response.status).toBe(200)
+  })
+
+  test('omits PDF file parts for text-only GLM-5.3', async () => {
+    process.env.CODEGURU_OPENAI_COMPAT = '1'
+    delete process.env.CODEGURU_OPENAI_COMPAT_VISION_MODEL
+    delete process.env.CODEGURU_OPENAI_COMPAT_ALLOW_IMAGES
+
+    const inner = async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body))
+      expect(body.model).toBe('GLM-5.3')
+      expect(JSON.stringify(body.messages)).not.toContain('file_data')
+      expect(body.messages[0].content).toBe(
+        'Summarize this.\n[Attached image or PDF was omitted because this model endpoint accepts only text content.]',
+      )
+      return Response.json({
+        id: 'chatcmpl-pdf',
+        object: 'chat.completion',
+        model: 'GLM-5.3',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: 'summary' },
+            finish_reason: 'stop',
+          },
+        ],
+      })
+    }
+
+    const response = await wrapFetchWithOpenAICompat(inner)(
+      'https://api.sambanova.ai/v1/messages',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'GLM-5.3',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Summarize this.' },
+                {
+                  type: 'document',
+                  source: {
+                    type: 'base64',
+                    media_type: 'application/pdf',
+                    data: 'JVBERg==',
+                  },
+                },
+              ],
+            },
+          ],
+          max_tokens: 16,
+          stream: false,
+        }),
+      },
+    )
+    expect(response.status).toBe(200)
+  })
+
+  test('still honors an explicit vision model override', async () => {
+    process.env.CODEGURU_OPENAI_COMPAT = '1'
+    process.env.CODEGURU_OPENAI_COMPAT_VISION_MODEL = 'gemma-4-31B-it'
+
+    const inner = async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body))
+      expect(body.model).toBe('gemma-4-31B-it')
+      return Response.json({
+        id: 'chatcmpl-vision',
+        object: 'chat.completion',
+        model: 'gemma-4-31B-it',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: 'ok' },
+            finish_reason: 'stop',
+          },
+        ],
+      })
+    }
+
+    await wrapFetchWithOpenAICompat(inner)(
+      'https://api.sambanova.ai/v1/messages',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'GLM-5.3',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image',
+                  source: {
+                    type: 'base64',
+                    media_type: 'image/jpeg',
+                    data: 'QUJD',
+                  },
+                },
+              ],
+            },
+          ],
+          max_tokens: 16,
+          stream: false,
+        }),
+      },
     )
   })
 })

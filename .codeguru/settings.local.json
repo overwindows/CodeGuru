@@ -148,7 +148,19 @@
       "Read(//tmp/**)",
       "Bash(mkdir -p \"C:/Users/wuc/.codeguru/skills/github-workflow\" \"C:/Users/wuc/.codeguru/skills/azure-devops\" \"C:/Users/wuc/.codeguru/skills/kusto-query\" \"C:/Users/wuc/.codeguru/skills/outlook-email\" \"C:/Users/wuc/.codeguru/skills/web-browse-automation\")",
       "Read(//c/Users/wuc/.codeguru/skills/**)",
-      "Read(//q/.tools/.npm-global/node_modules/ai-coder-tools/**)"
+      "Read(//q/.tools/.npm-global/node_modules/ai-coder-tools/**)",
+      "Bash(du -sh /import/snvm-sc-scratch1/chenw/*/)",
+      "WebFetch(domain:www.youtube.com)",
+      "Bash(squeue -u chenw -o \"%.18i %.30N %t %M\" -h echo \"---\" sinfo -p gpuonly -o \"%30N %10T\" -h)",
+      "Bash(crontab -l)",
+      "Bash(systemctl is-active:*)",
+      "Bash(sinfo -p gpuonly -N -h -o \"%N|%T|%G\")",
+      "Bash(grep -ril PEF /import/ml-sc-scratch1/chenw/CodeGuru --include=*.md --include=*.json --include=*.ts --include=*.tsx --include=*.js)",
+      "Bash(grep -ril Qwen /import/ml-sc-scratch1/chenw/CodeGuru --include=*.md --include=*.json --include=*.ts --include=*.tsx --include=*.js)",
+      "Bash(squeue:*)",
+      "Bash(sinfo)",
+      "WebFetch(domain:snvm-web.sambanovasystems.com)",
+      "Read(//import/ml-sc-scratch1/chenw/**)"
     ]
   }
 }

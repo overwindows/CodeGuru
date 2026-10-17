@@ -298,3 +298,55 @@ export async function extractPDFPages(
     }
   }
 }
+
+/**
+ * Extract PDF text with pdftotext. Used when the selected model endpoint
+ * accepts only text and cannot take rendered page images.
+ */
+export async function extractPDFText(
+  filePath: string,
+  options?: { firstPage?: number; lastPage?: number },
+): Promise<PDFResult<{ text: string }>> {
+  const args = ['-layout']
+  if (options?.firstPage) {
+    args.push('-f', String(options.firstPage))
+  }
+  if (options?.lastPage && options.lastPage !== Infinity) {
+    args.push('-l', String(options.lastPage))
+  }
+  args.push(filePath, '-')
+  const { code, stdout, stderr } = await execFileNoThrow('pdftotext', args, {
+    timeout: 60_000,
+    useCwd: false,
+  })
+  if (code !== 0) {
+    if (/password/i.test(stderr)) {
+      return {
+        success: false,
+        error: {
+          reason: 'password_protected',
+          message:
+            'PDF is password-protected. Please provide an unprotected version.',
+        },
+      }
+    }
+    if (/not found|ENOENT/i.test(stderr)) {
+      return {
+        success: false,
+        error: {
+          reason: 'unavailable',
+          message:
+            'pdftotext is not installed. Install poppler-utils to read PDFs as text.',
+        },
+      }
+    }
+    return {
+      success: false,
+      error: {
+        reason: 'unknown',
+        message: `pdftotext failed: ${stderr || 'unknown error'}`,
+      },
+    }
+  }
+  return { success: true, data: { text: stdout } }
+}

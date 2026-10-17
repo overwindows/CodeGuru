@@ -12,6 +12,7 @@ import { hasBinaryExtension } from '../../constants/files.js'
 import { memoryFreshnessNote } from '../../memdir/memoryAge.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../../services/analytics/growthbook.js'
 import { logEvent } from '../../services/analytics/index.js'
+import { modelAcceptsMediaInput } from '../../services/api/openAICompatAdapter.js'
 import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   getFileExtensionForAnalytics,
@@ -58,7 +59,12 @@ import {
   readNotebook,
 } from '../../utils/notebook.js'
 import { expandPath } from '../../utils/path.js'
-import { extractPDFPages, getPDFPageCount, readPDF } from '../../utils/pdf.js'
+import {
+  extractPDFPages,
+  extractPDFText,
+  getPDFPageCount,
+  readPDF,
+} from '../../utils/pdf.js'
 import {
   isPDFExtension,
   isPDFSupported,
@@ -892,6 +898,31 @@ async function callInner(
 
   // --- PDF ---
   if (isPDFExtension(ext)) {
+    if (!modelAcceptsMediaInput(getMainLoopModel())) {
+      const parsedRange = pages ? parsePDFPageRange(pages) : null
+      const textResult = await extractPDFText(
+        resolvedFilePath,
+        parsedRange ?? undefined,
+      )
+      if (!textResult.success) {
+        throw new Error(textResult.error.message)
+      }
+      const content = textResult.data.text
+      const lineCount = content.length === 0 ? 0 : content.split('\n').length
+      return {
+        data: {
+          type: 'text',
+          file: {
+            filePath: file_path,
+            content,
+            numLines: lineCount,
+            startLine: 1,
+            totalLines: lineCount,
+          },
+        },
+      }
+    }
+
     if (pages) {
       const parsedRange = parsePDFPageRange(pages)
       const extractResult = await extractPDFPages(
