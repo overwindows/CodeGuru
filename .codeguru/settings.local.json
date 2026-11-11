@@ -160,7 +160,12 @@
       "Bash(squeue:*)",
       "Bash(sinfo)",
       "WebFetch(domain:snvm-web.sambanovasystems.com)",
-      "Read(//import/ml-sc-scratch1/chenw/**)"
+      "Read(//import/ml-sc-scratch1/chenw/**)",
+      "Read(//home/snvm_webadmin/ml/**)",
+      "Bash(/usr/bin/python3 fetch_node_status.py)",
+      "Bash(/usr/bin/python3 /tmp/md2html.py /home/snvm_webadmin/ml/sambanova_runbook.md /home/snvm_webadmin/ml/sambanova_runbook.html \"SambaNova IDC Cluster Guide\")",
+      "Bash(quota -s -f /home/chenw)",
+      "Bash(du -sh /home/chenw/* /home/chenw/.[!.]*)"
     ]
   }
 }
