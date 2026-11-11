@@ -425,3 +425,195 @@ machine the SDK (v1.17.0) is resolved via a directory **junction** at
 `agentbus/node_modules/@modelcontextprotocol/sdk → Q:\.tools\.npm-global\...\ai-coder-tools\node_modules\@modelcontextprotocol\sdk`.
 `node_modules/` is gitignored, so the junction is local-only. If you move the repo,
 recreate the junction (or `npm i @modelcontextprotocol/sdk` in `agentbus/`).
+
+---
+
+## Ask-Chen — colleagues' agents → Chen (inbound Q&A, A2A)
+
+Ask-Chen is the agentbus **agent** that answers colleagues' agents' questions
+**grounded in Chen's knowledge base** (`Q:\CodeGuru\knowledgebase`). It speaks
+the **A2A (Agent2Agent) v1.0** open protocol (Linux Foundation / Google,
+Microsoft, AWS, Cisco, IBM, SAP, Salesforce on the TSC) — the industry-standard
+wire format for agent-to-agent communication (complementary to MCP, which is
+agent-to-tool). No proprietary interface: a conforming A2A client can talk to
+it out of the box.
+
+The service auto-answers what it can and flags uncertain questions to Chen.
+
+### Enable it
+
+Ask-Chen is **off by default**. When you start the service, pass a shared token
+(advertised as the A2A `apiKey` security scheme):
+
+```
+python server.py --port 8765 --ask-token <SHARED-SECRET>
+# or via the launcher:
+python launcher.py --ask-token <SHARED-SECRET>
+```
+
+The token can also come from the `AGENTBUS_ASK_TOKEN` env var (plain
+`*_TOKEN` in the shell inherits into the process). Give the same secret to the
+colleagues' agents you want to allow. All existing endpoints stay open on
+loopback as before — only the A2A endpoints (`/.well-known/agent-card.json`,
+`/message:send`, `/tasks/*`) require the token.
+
+### Discovery — Agent Card
+
+```
+GET /.well-known/agent-card.json          # NO auth (public discovery)
+→ { "name": "ask-chen", "version": "1.0.0",
+    "capabilities": { "streaming": false, "pushNotifications": false },
+    "securitySchemes": [{ "type": "apiKey", "in": "header",
+                          "keyName": "Authorization" }],
+    "skills": [ { "id": "kb-qa", "name": "Knowledge Base Q&A", ... } ] }
+```
+
+An A2A client bootstraps by fetching the card, then calls the agent with the
+card's security scheme.
+
+### External-caller contract (A2A)
+
+A colleague's A2A agent sends a message and polls the resulting task:
+
+```
+POST /message:send
+Authorization: Bearer <SHARED-SECRET>
+Content-Type: application/json
+{ "message": { "role": "ROLE_USER",
+               "parts": [ { "text": "What did Chen's team do on the MSN
+                                     ranking L2.5 model in FY25?" } ] } }
+
+→ 200 { "task": { "id": "a1b2c3...", "status": {
+        "state": "TASK_STATE_SUBMITTED", "timestamp": "..." } } }
+
+GET /tasks/a1b2c3...
+Authorization: Bearer <SHARED-SECRET>
+
+→ while running: { "task": { "id": "...", "status": { "state":
+                     "TASK_STATE_WORKING", ... } } }
+→ when done:     { "task": { "id": "...",
+                     "status": { "state": "TASK_STATE_COMPLETED", ... },
+                     "artifacts": [ { "artifactId": "...-answer",
+                        "name": "answer",
+                        "parts": [ { "text": "..." } ],
+                        "metadata": { "sources": ["04_TOPIC_DEEP_DIVES.md"],
+                                       "confidence": 0.8,
+                                       "needs_human": false } } ] } }
+
+POST /tasks/<id>:cancel                  # optional, cancels a pending task
+```
+
+Poll `GET /tasks/{id}` every few seconds until the state leaves
+`TASK_STATE_SUBMITTED`/`WORKING` (answers typically take ~5–30s).
+
+A2A task states map from the answer worker as:
+
+| Internal | A2A state | Meaning |
+|---|---|---|
+| pending / working | `TASK_STATE_SUBMITTED` / `WORKING` | in flight |
+| done + grounded | `TASK_STATE_COMPLETED` | answer artifact present |
+| done + `needs_human` | `TASK_STATE_INPUT_REQUIRED` | KB thin / needs Chen |
+| error or canceled | `TASK_STATE_FAILED` | couldn't answer |
+
+- `needs_human: true` (→ `TASK_STATE_INPUT_REQUIRED`) means the KB couldn't
+  ground the answer. The question is also **flagged to Chen**: a message lands
+  in the `chen` bus inbox (subject `ask-chen: needs human`) and a line is
+  appended to the team log.
+- Without `--ask-token`, `/message:send` returns **501**; a missing/wrong token
+  returns **401** (A2A auth semantics: 401 on auth failure).
+
+### How answers are produced
+
+`server.py`'s worker thread (`ask_chen.py`) does the retrieval **in code**:
+it strips the question into keywords and greps the KB (index → numbered `0*.md`
+docs → `segments/`), then feeds the matching lines as an EVIDENCE block to an
+LLM call via the shared router (this CodeGuru install's model, OpenAI-format
+`/v1/chat/completions`). The LLM composes a grounded answer + `sources[]` from
+that evidence only — no file-tool use, no invented facts.
+
+Each `/message:send` costs one router call (~tens of seconds worst case) — fine
+for a low-frequency side channel. Don't hammer it.
+
+---
+
+## Ask-Chen — remote relay over Azure Storage queues (reachable beyond loopback)
+
+The loopback A2A endpoints above only work when the remote agent is on the same
+machine as the agentbus. To let **colleagues' agents from anywhere on the
+internet** (Copilot, Claude, other harnesses) ask Chen's KB and get answers, the
+bus can bridge through an **Azure Storage-queue relay**: the remote machine posts
+a question to a queue, and the local agentbus worker answers it and posts the
+result back to another queue. All compute stays local; Azure only carries the
+messages. This was chosen over an Azure Functions deployment because the
+`MAI-FunctionApps-v010` secure-by-default policy **denies** creating public
+no-auth Function apps (Storage queues aren't under that policy).
+
+### Layout
+
+```
+remote agent                 Azure Storage               local agentbus
+(client.py --transport       askchen-inbox               server.py --azure-relay
+ remote)               ──►   (questions)          ──►    worker: ask_chen.answer()
+                          ◄── askchen-replies     ◄──    + KB
+                              (answers)
+```
+
+- `askchen-inbox` — remote agents enqueue `{"id":"<corr>","question":"...","caller":"..."}`.
+- `askchen-replies` — the local worker enqueues `{"id":"<same corr>","result":{answer,sources,confidence,needs_human}}`.
+
+### Enable the relay
+
+Add `--azure-relay` when starting the service, and point it at the storage
+account via `AGENTBUS_AZURE_CONN` (a connection string with `QueueEndpoint` +
+`AccountKey`):
+
+```bash
+# AGENTBUS_AZURE_CONN contains the storage connection string
+python server.py --port 8765 --ask-token <SECRET> --azure-relay
+```
+
+The relay worker (`_azure_worker` in `server.py`) polls `askchen-inbox`, calls
+`ask_chen.answer()` for each question, posts the reply to `askchen-replies`, and
+deletes the inbox message. `needs_human` answers are also flagged to the `chen`
+inbox (subject `ask-chen: needs human (azure relay)`).
+
+### Remote client
+
+`azure_client.py` is a stdlib-only client for testing / non-Copilot callers, with
+two credential modes — full connection string (simplest, whole account key) or a
+least-privilege **queue SAS pair**:
+
+```bash
+# mode 1 — connection string
+AGENTBUS_AZURE_CONN="<storage connection string>" \
+  python azure_client.py --question "What is the MSN ranking funnel?" --caller me
+
+# mode 2 — scoped queue SAS (preferred for handing credentials to colleagues):
+#   --inbox-sas   = askchen-inbox   add-only (sp=a)
+#   --replies-sas = askchen-replies process (sp=p, read+delete)
+AGENTBUS_QUEUE_SAS_INBOX="<inbox-sas: sv=...&sp=a...>" \
+AGENTBUS_QUEUE_SAS_REPLIES="<replies-sas: sv=...&sp=p...>" \
+  python azure_client.py --question "What is the MSN ranking funnel?"
+# or as explicit args: --inbox-sas ... --replies-sas ... [--endpoint ...]
+```
+
+The Copilot `ask-chen` skill's `client.py` supports `--transport remote` with the
+same two modes (`AGENTBUS_AZURE_CONN`, or the `AGENTBUS_QUEUE_SAS_INBOX` /
+`AGENTBUS_QUEUE_SAS_REPLIES` / `AGENTBUS_QUEUE_ENDPOINT` env pair). No Bearer
+token is needed for the relay; the queue itself is the gate.
+
+### Notes / security
+
+- The storage connection string is the shared secret for the local worker only —
+  keep it out of version control (`agentbus-secrets.json` is gitignored) and
+  **don't hand it to colleagues**. For remote callers, generate scoped queue SAS
+  tokens (`az storage queue generate-sas -n askchen-inbox --permissions a` and
+  `-n askchen-replies --permissions p`) — least privilege, HTTPS-only, expiry
+  `2027-10-15`. Verified: the add-only inbox SAS is denied reads (`403
+  AuthorizationPermissionMismatch`).
+- Messages are delete-on-receive after a successful answer; a crashed client can
+  miss a reply (re-ask).
+- This is a low-frequency, best-effort relay — not a durable mail system. The
+  `chen` computer must be running the relay for remote questions to be answered.
+- User-facing runbook: `Q:\ensemble_privacy_pipeline\showcase\ask-chen.html`.
+

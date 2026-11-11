@@ -2,3 +2,4 @@ __pycache__/
 *.pyc
 service.log
 node_modules/
+agentbus-secrets.json
